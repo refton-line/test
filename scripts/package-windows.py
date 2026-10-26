@@ -33,8 +33,15 @@ while queue:
         source=lookup.get(low)
         if source is None: missing.add(name); continue
         shutil.copy2(source,dest); queue.append(dest); copied.append(name)
+# The MinGW runtime DLLs ship with DWARF debug info (libstdc++ alone is ~26 MB).
+# --strip-debug drops only that; export and import tables are untouched.
+stripped=[]
+for dll in out.glob('lib*.dll'):
+    before=dll.stat().st_size
+    subprocess.run(['x86_64-w64-mingw32-strip','--strip-debug',str(dll)],check=True)
+    if dll.stat().st_size<before: stripped.append(dll.name)
 (out/'qt.conf').write_text('[Paths]\nPrefix=.\nPlugins=plugins\nQmlImports=qml\n')
-report={'PE_files_audited':len(seen),'dependency_DLLs_copied':len(copied),'unresolved_non_system_DLLs':sorted(missing),'note':'Static import audit, not proof of Windows runtime or delay-loaded system APIs.'}
+report={'PE_files_audited':len(seen),'dependency_DLLs_copied':len(copied),'unresolved_non_system_DLLs':sorted(missing),'debug_info_stripped':sorted(stripped),'note':'Static import audit, not proof of Windows runtime or delay-loaded system APIs.'}
 (out/'dependency-audit.json').write_text(json.dumps(report,indent=2))
 print(json.dumps(report))
 if missing: raise SystemExit(1)
