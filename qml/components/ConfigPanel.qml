@@ -259,6 +259,7 @@ Item {
         width: 480
         height: 252
         modal: true
+        Overlay.modal: Rectangle { color: Theme.alpha(Theme.ink, 0.22) }
         focus: true
         padding: 24
         property bool renaming: false
@@ -327,6 +328,7 @@ Item {
         width: 480
         height: 252
         modal: true
+        Overlay.modal: Rectangle { color: Theme.alpha(Theme.ink, 0.22) }
         focus: true
         padding: 24
         background: Rectangle {

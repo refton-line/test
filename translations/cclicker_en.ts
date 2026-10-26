@@ -647,6 +647,10 @@
         <source>Стоп</source>
         <translation>Stop</translation>
     </message>
+    <message>
+        <source>Сменить язык</source>
+        <translation>Switch language</translation>
+    </message>
 </context>
 <context>
     <name>PreferencesPanel</name>

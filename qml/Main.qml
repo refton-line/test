@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Window
+import QtQuick.Effects
 import CClicker
 import "components"
 import "components/Motion.js" as Motion
@@ -158,6 +159,18 @@ ApplicationWindow {
             // Rectangular clipping only. Backgrounds respect the outer inset;
             // nothing can bleed outside the rounded shell.
             clip: true
+            Aurora {
+                id: aurora
+                anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
+                anchors.margins: 1
+                height: 300
+                color: win.modeHue
+                active: win.liveVisuals && !win.exiting
+                opacity: win.statusReveal
+                Connections { target: clickEngine; function onChanged() { if (clickEngine.active && clickEngine.clicks !== aurora.seen) { aurora.seen = clickEngine.clicks; aurora.pulse++; } } }
+                property real seen: 0
+                Timer { interval: 420; repeat: true; running: uiCapture && win.glowDemo; onTriggered: aurora.pulse++ }
+            }
             Item {
                 id: shellContent
                 anchors.fill: parent
@@ -165,61 +178,99 @@ ApplicationWindow {
                 visible: win.expansion > 0.25
                 enabled: win.expansion === 1
 
-                // ---- Title bar: brand, tabs, window controls ----
-                Rectangle {
-                    id: titleBar
+                // ---- Top band: a floating navigation pill and a dark window-controls pill ----
+                // The band itself is the drag target; pills have no mouse handling of
+                // their own, so presses between buttons fall through to it.
+                MouseArea {
                     width: parent.width; height: Theme.titleHeight
+                    acceptedButtons: Qt.LeftButton
+                    onPressed: if (!win.fullScreen) win.startSystemMove()
+                    onDoubleClicked: win.toggleMaximized()
+                }
+                Rectangle {
+                    id: navPill
+                    objectName: "navPill"
+                    x: 14; y: 12
+                    width: navRow.implicitWidth + 16; height: 48
+                    radius: 24
                     color: Theme.chrome
+                    border.color: Theme.hairline
                     opacity: win.chromeReveal
-                    Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.hairline }
-                    // Separate drag target, never laid over interactive controls.
-                    MouseArea {
-                        anchors.fill: parent
-                        acceptedButtons: Qt.LeftButton
-                        onPressed: if (!win.fullScreen) win.startSystemMove()
-                        onDoubleClicked: win.toggleMaximized()
-                    }
-                    Label {
-                        x: 58; anchors.verticalCenter: parent.verticalCenter
-                        text: "C clicker"
-                        font.pixelSize: 15; font.weight: Font.DemiBold; font.letterSpacing: -0.2
-                        transform: Translate { x: -10 * (1 - win.chromeReveal) }
-                    }
+                    transform: Translate { y: -10 * (1 - win.chromeReveal) }
+                    Shadow { z: -1; anchors.fill: parent; radius: parent.radius; peak: 0.05 }
                     Row {
-                        anchors.right: parent.right; anchors.rightMargin: 8
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 0
-                        ActionButton { objectName: "openConfigFolder"; text: ""; glyph: "folder"; quiet: true; width: 44; Accessible.name: qsTr("Открыть папку конфигураций"); onClicked: configs.openFolder() }
-                        Rectangle { width: 1; height: 20; color: Theme.hairline; anchors.verticalCenter: parent.verticalCenter }
-                        ActionButton { text: ""; glyph: "minus"; quiet: true; width: 44; Accessible.name: qsTr("Свернуть"); onClicked: win.showMinimized() }
-                        ActionButton { objectName: "maximizeButton"; text: ""; glyph: win.maximized ? "restore" : "maximize"; quiet: true; width: 44; Accessible.name: win.maximized ? qsTr("Восстановить окно") : qsTr("Развернуть окно"); enabled: !win.fullScreen; onClicked: win.toggleMaximized() }
-                        ActionButton { objectName: "fullscreenButton"; text: ""; glyph: win.fullScreen ? "minimize" : "fullscreen"; quiet: true; width: 44; Accessible.name: win.fullScreen ? qsTr("Выйти из полного экрана") : qsTr("Полный экран"); onClicked: win.toggleFullscreen() }
-                        ActionButton { objectName: "closeButton"; text: ""; glyph: "x"; quiet: true; width: 44; Accessible.name: qsTr("Закрыть"); onClicked: win.requestClose() }
+                        id: navRow
+                        x: 8; anchors.verticalCenter: parent.verticalCenter
+                        spacing: 6
+                        Item { width: 42; height: 40 }   // the docked C sits here
+                        Label {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "C clicker"
+                            font.pixelSize: 16; font.weight: Font.Medium; font.letterSpacing: -0.3
+                        }
+                        Item { width: 18; height: 1 }
+                        NavTabs {
+                            id: tabs
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: implicitWidth
+                            labels: [qsTr("Кликер"), qsTr("Журнал"), qsTr("Управление"), qsTr("Конфигурации"), qsTr("Язык")]
+                            glyphs: ["mouse", "activity", "keyboard", "folder", "globe"]
+                            current: win.displayedPage
+                            hue: win.modeHue
+                            reveal: win.navReveal
+                            textPhase: win.languagePhase
+                            textShift: win.languageShift
+                            onPicked: index => win.selectedPage = index
+                        }
+                        Rectangle { width: 1; height: 22; color: Theme.hairline; anchors.verticalCenter: parent.verticalCenter }
+                        ActionButton { objectName: "openConfigFolder"; text: ""; glyph: "folder"; quiet: true; width: 40; height: 40; anchors.verticalCenter: parent.verticalCenter; Accessible.name: qsTr("Открыть папку конфигураций"); onClicked: configs.openFolder() }
+                        ActionButton {
+                            objectName: "navLanguage"
+                            anchors.verticalCenter: parent.verticalCenter
+                            height: 40; quiet: true; textSize: 13
+                            glyph: "globe"
+                            // Shows the language it switches to, like the reference's "RU".
+                            text: i18n.language === "en" ? "RU" : "EN"
+                            contentOpacity: win.languagePhase
+                            Accessible.name: qsTr("Сменить язык")
+                            onClicked: win.switchLanguage(i18n.language === "en" ? "ru" : "en")
+                        }
                     }
                 }
-                NavTabs {
-                    id: tabs
-                    x: (parent.width - width) / 2; y: 12
-                    width: implicitWidth
-                    labels: [qsTr("Кликер"), qsTr("Журнал"), qsTr("Управление"), qsTr("Конфигурации"), qsTr("Язык")]
-                    glyphs: ["mouse", "activity", "keyboard", "folder", "globe"]
-                    current: win.displayedPage
-                    hue: win.modeHue
-                    reveal: win.navReveal
-                    textPhase: win.languagePhase
-                    textShift: win.languageShift
-                    onPicked: index => win.selectedPage = index
+                Rectangle {
+                    objectName: "windowControls"
+                    anchors.right: parent.right; anchors.rightMargin: 14
+                    y: 16; height: 40
+                    width: controlsRow.implicitWidth + 8
+                    radius: 12
+                    color: Theme.alpha(Theme.night, 0.92)
+                    opacity: win.chromeReveal
+                    transform: Translate { y: -10 * (1 - win.chromeReveal) }
+                    Shadow { z: -1; anchors.fill: parent; radius: parent.radius; peak: 0.08; spread: 12 }
+                    Row {
+                        id: controlsRow
+                        x: 4; anchors.verticalCenter: parent.verticalCenter
+                        ActionButton { text: ""; glyph: "minus"; quiet: true; inverse: true; width: 36; height: 32; Accessible.name: qsTr("Свернуть"); onClicked: win.showMinimized() }
+                        ActionButton { objectName: "maximizeButton"; text: ""; glyph: win.maximized ? "restore" : "maximize"; quiet: true; inverse: true; width: 36; height: 32; Accessible.name: win.maximized ? qsTr("Восстановить окно") : qsTr("Развернуть окно"); enabled: !win.fullScreen; onClicked: win.toggleMaximized() }
+                        ActionButton { objectName: "fullscreenButton"; text: ""; glyph: win.fullScreen ? "minimize" : "fullscreen"; quiet: true; inverse: true; width: 36; height: 32; Accessible.name: win.fullScreen ? qsTr("Выйти из полного экрана") : qsTr("Полный экран"); onClicked: win.toggleFullscreen() }
+                        ActionButton { objectName: "closeButton"; text: ""; glyph: "x"; quiet: true; inverse: true; width: 36; height: 32; Accessible.name: qsTr("Закрыть"); onClicked: win.requestClose() }
+                    }
                 }
 
                 // ---- Pages ----
                 Item {
                     id: workArea
                     objectName: "workArea"
-                    x: Theme.gutter - 4; y: Theme.titleHeight + 20
+                    x: Theme.gutter - 4; y: Theme.titleHeight + 8
                     width: parent.width - 2 * x
-                    height: parent.height - y - Theme.statusHeight - 16
+                    height: parent.height - y - Theme.statusHeight - 30
                     opacity: win.contentReveal * win.languagePhase
                     transform: Translate { y: 14 * (1 - win.contentReveal) + win.languageShift }
+                    // Blur-in on open, the reference's signature reveal (GPU only; the
+                    // software renderer has no shader effects and just fades).
+                    readonly property real haze: (1 - win.contentReveal) * 0.7
+                    layer.enabled: page0.canBlur && haze > 0.004
+                    layer.effect: MultiEffect { blurEnabled: true; blur: workArea.haze; blurMax: 32; autoPaddingEnabled: false }
                     // The clicker page is a direct child so its state and objects persist.
                     Stage {
                         id: page0
@@ -262,16 +313,19 @@ ApplicationWindow {
                     Component { id: languagePage; LanguagePanel { language: i18n; onPick: code => win.switchLanguage(code) } }
                 }
 
-                // ---- Status bar: live hotkeys and state ----
+                // ---- Status pill: live hotkeys and state, floating over the aurora ----
                 Rectangle {
                     id: statusBar
                     objectName: "statusBar"
-                    anchors.bottom: parent.bottom
-                    width: parent.width; height: Theme.statusHeight
+                    x: 14; width: parent.width - 28
+                    anchors.bottom: parent.bottom; anchors.bottomMargin: 14
+                    height: Theme.statusHeight
+                    radius: 14
                     color: Theme.chrome
+                    border.color: Theme.hairline
                     opacity: win.statusReveal
                     transform: Translate { y: 10 * (1 - win.statusReveal) }
-                    Rectangle { width: parent.width; height: 1; color: Theme.hairline }
+                    Shadow { z: -1; anchors.fill: parent; radius: parent.radius; peak: 0.07 }
                     component KeyChip: Row {
                         property string caption
                         property string keys
@@ -280,7 +334,7 @@ ApplicationWindow {
                         Rectangle {
                             height: 24; width: keyText.implicitWidth + 16
                             radius: Theme.radiusSmall
-                            color: Theme.surfaceRaised
+                            color: Theme.canvas
                             border.color: Theme.hairline
                             anchors.verticalCenter: parent.verticalCenter
                             Behavior on width { NumberAnimation { duration: Theme.thumbTravel; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.standardCurve } }
@@ -288,13 +342,13 @@ ApplicationWindow {
                         }
                     }
                     Row {
-                        x: Theme.gutter - 4; anchors.verticalCenter: parent.verticalCenter
+                        x: 16; anchors.verticalCenter: parent.verticalCenter
                         spacing: 22
                         KeyChip { caption: qsTr("Запуск"); keys: clickEngine.startLabel }
                         KeyChip { caption: qsTr("Стоп"); keys: clickEngine.stopLabel }
                     }
                     Row {
-                        anchors.right: parent.right; anchors.rightMargin: Theme.gutter - 4
+                        anchors.right: parent.right; anchors.rightMargin: 16
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: 10
                         Rectangle {
@@ -324,7 +378,7 @@ ApplicationWindow {
                     Connections { target: clickEngine; function onChanged() { if (clickEngine.error !== "") errorBanner.message = clickEngine.error } }
                     property real lift: 18
                     anchors.bottom: parent.bottom
-                    anchors.bottomMargin: Theme.statusHeight + 14
+                    anchors.bottomMargin: Theme.statusHeight + 26
                     width: parent.width - x - workArea.x
                     height: Math.max(52, errorText.implicitHeight + 24)
                     color: Theme.surface; radius: Theme.radius
@@ -365,13 +419,6 @@ ApplicationWindow {
                     }
                 }
             }
-            // Window edge light while clicks are being sent.
-            EdgeGlow {
-                anchors.fill: parent
-                radius: chassis.radius
-                color: win.modeHue
-                active: win.liveVisuals && !win.exiting
-            }
             BootStage {
                 anchors.fill: parent
                 progress: startup.progress; ready: startup.done
@@ -400,11 +447,11 @@ ApplicationWindow {
         }
         CMark {
             objectName: "cmark"
-            // Glued to the shell: centred in the card, then carried into the title bar.
+            // Glued to the shell: centred in the card, then carried into the nav pill.
             readonly property real dock: win.shell
-            width: 112 - 84 * dock; height: width
-            x: (scene.width - win.panelWidth) / 2 + (win.panelWidth - width) / 2 * (1 - dock) + 20 * dock
-            y: (scene.height - win.panelHeight) / 2 + 48 * (1 - dock) + 18 * dock
+            width: 112 - 76 * dock; height: width
+            x: (scene.width - win.panelWidth) / 2 + (win.panelWidth - width) / 2 * (1 - dock) + 25 * dock
+            y: (scene.height - win.panelHeight) / 2 + 48 * (1 - dock) + 19 * dock
             erase: 1 - win.dismissal
             visible: startup.error === ""
         }

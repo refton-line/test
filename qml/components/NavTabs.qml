@@ -56,10 +56,10 @@ Item {
         objectName: "tabPill"
         x: nav.pillX; y: 0
         width: nav.pillW; height: nav.height
-        radius: Theme.radius
-        color: Theme.surfaceRaised
+        radius: height / 2
+        color: Theme.canvas
+        border.color: Theme.hairline
         opacity: nav.reveal(nav.current)
-        Rim { inset: Theme.radius }
     }
     Item {
         objectName: "tabGlow"

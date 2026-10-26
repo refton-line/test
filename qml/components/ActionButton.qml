@@ -11,6 +11,8 @@ Button {
     property bool outlined: false
     // Off where a shared sliding thumb or pill draws the selection instead.
     property bool fillChecked: true
+    // On a dark surface (window controls pill): light glyphs, translucent white states.
+    property bool inverse: false
     property bool centered: !navigation
     property int textSize: Theme.small
     property int maxTextWidth: 1000
@@ -34,12 +36,13 @@ Button {
     background: Rectangle {
         radius: control.segmented ? Theme.radiusSmall : Theme.radius
         color: control.lightFace ? Theme.accent
+             : control.inverse ? (control.down ? Theme.alpha(Theme.sheen, 0.22) : control.hovered ? Theme.alpha(Theme.sheen, 0.12) : Theme.clear)
              : control.checked && !control.fillChecked ? Theme.clear
              : control.down ? Theme.accentSoft
              : control.checked ? Theme.surfaceRaised
              : control.hovered ? Theme.surfaceHover
              : control.quiet || control.segmented ? Theme.clear : Theme.surface
-        // Primary actions are lit: a silver gradient face and a white bloom that grows on hover.
+        // Primary actions: a flat cyan face (a hint of gradient) with a cyan halo on hover.
         gradient: control.lightFace ? emberFace : undefined
         border.width: control.visualFocus ? 2 : 1
         border.color: control.visualFocus ? (control.lightFace ? Theme.focusOnAccent : Theme.focus)
@@ -56,9 +59,9 @@ Button {
             z: -1
             anchors.fill: parent
             radius: parent.radius
-            color: Theme.brand
-            spread: 14
-            peak: 0.14
+            color: Theme.accent
+            spread: 12
+            peak: 0.35
             strength: control.lightFace ? (control.hovered || control.visualFocus ? 1 : 0.45) : 0
             Behavior on strength { NumberAnimation { duration: Theme.normal; easing.type: Easing.OutCubic } }
         }
@@ -82,6 +85,7 @@ Button {
                 visible: control.glyph !== ""
                 name: control.glyph
                 foreground: control.lightFace ? Theme.accentInk
+                          : control.inverse ? Theme.sheen
                           : control.navigation && !control.checked ? Theme.muted : Theme.ink
                 width: control.navigation ? 18 : 20; height: width
                 anchors.verticalCenter: parent.verticalCenter
@@ -92,7 +96,7 @@ Button {
                 elide: Text.ElideRight
                 text: control.text
                 opacity: control.contentOpacity
-                color: control.lightFace ? Theme.accentInk : control.navigation && !control.checked ? Theme.muted : Theme.ink
+                color: control.lightFace ? Theme.accentInk : control.inverse ? Theme.sheen : control.navigation && !control.checked ? Theme.muted : Theme.ink
                 font.pixelSize: control.textSize
                 font.weight: control.checked || control.primary ? Font.DemiBold : Font.Medium
                 Behavior on color { ColorAnimation { duration: Theme.normal } }

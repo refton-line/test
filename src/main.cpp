@@ -26,10 +26,10 @@ int main(int argc, char *argv[]) {
     app.setApplicationDisplayName("C clicker");
     app.setOrganizationName("ObsidianClick");
     app.setApplicationName("ObsidianClick");
-    app.setApplicationVersion("0.8.0-silver");
+    app.setApplicationVersion("0.9.0-daylight");
     app.setWindowIcon(QIcon(":/qt/qml/CClicker/assets/app.ico"));
-    QFontDatabase::addApplicationFont(":/qt/qml/CClicker/assets/fonts/Manrope.ttf");
-    QFontDatabase::addApplicationFont(":/qt/qml/CClicker/assets/fonts/JetBrainsMono.ttf");
+    for (const char *face : {"Geist-Regular", "Geist-Medium", "Geist-SemiBold", "GeistMono-Regular", "GeistMono-Medium"})
+        QFontDatabase::addApplicationFont(QString(":/qt/qml/CClicker/assets/fonts/%1.ttf").arg(face));
     QQuickStyle::setStyle("Basic");
     // Install the translator before any controller builds its first strings.
     LanguageController language;

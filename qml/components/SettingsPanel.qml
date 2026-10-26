@@ -12,7 +12,7 @@ Rectangle {
     radius: Theme.radiusLarge
     color: Theme.surface
     border.color: Theme.hairline
-    Rim {}
+    Shadow { z: -1; anchors.fill: parent; radius: parent.radius; peak: 0.045; spread: 20 }
 
     readonly property bool idle: !engine.active
     readonly property real inner: width - 40
@@ -36,10 +36,20 @@ Rectangle {
             }
         }
     }
-    component Caption: Label {
-        font.pixelSize: 11; font.weight: Font.DemiBold; font.letterSpacing: 1.1
-        font.capitalization: Font.AllUppercase
-        color: Theme.faint
+    // Section labels as path chips ("/mode"), the reference's section marker.
+    component Caption: Rectangle {
+        property string text
+        width: chip.implicitWidth + 12; height: 20
+        radius: 5
+        color: Theme.clear
+        border.color: Theme.controlBorder
+        Label {
+            id: chip
+            anchors.centerIn: parent
+            text: "/" + parent.text.toLowerCase()
+            font.family: Theme.mono; font.pixelSize: 11
+            color: Theme.ink
+        }
     }
     component Readout: Label { font.family: Theme.mono; font.pixelSize: 13; color: Theme.muted }
     function rate(v) { return v.toLocaleString(Qt.locale(i18n.locale), 'f', v < 100 ? 1 : 0) }
@@ -256,6 +266,7 @@ Rectangle {
         width: 480
         height: 332
         modal: true
+        Overlay.modal: Rectangle { color: Theme.alpha(Theme.ink, 0.22) }
         focus: true
         padding: 24
         enter: Transition { ParallelAnimation { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.pageFade; easing.type: Easing.OutCubic } NumberAnimation { property: "scale"; from: 0.94; to: 1; duration: Theme.dialogEnter; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.standardCurve } } }

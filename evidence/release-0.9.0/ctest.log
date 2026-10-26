@@ -1,0 +1,5 @@
+1: CONTROLLER_CONFIG_TIMING_PASS 725 assertions
+1/2 Test #1: controller_validation ............   Passed    0.11 sec
+2: TRANSLATIONS_COMPLETE 237 messages
+2/2 Test #2: translations_complete ............   Passed    0.13 sec
+100% tests passed, 0 tests failed out of 2

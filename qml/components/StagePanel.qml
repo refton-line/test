@@ -30,8 +30,8 @@ Item {
             fillGradient: RadialGradient {
                 centerX: ambient.cx; centerY: ambient.cy; centerRadius: ambient.r
                 focalX: ambient.cx; focalY: ambient.cy; focalRadius: 0
-                GradientStop { position: 0; color: Theme.alpha(ambient.tint, 0.10) }
-                GradientStop { position: 0.45; color: Theme.alpha(ambient.tint, 0.035) }
+                GradientStop { position: 0; color: Theme.alpha(ambient.tint, 0.09) }
+                GradientStop { position: 0.45; color: Theme.alpha(ambient.tint, 0.03) }
                 GradientStop { position: 1; color: Theme.alpha(ambient.tint, 0) }
             }
             PathAngleArc { centerX: ambient.cx; centerY: ambient.cy; radiusX: ambient.r; radiusY: ambient.r * 0.8; startAngle: 0; sweepAngle: 360 }
@@ -72,14 +72,13 @@ Item {
                 color: Theme.surface
                 border.color: modelData.lead && stage.engine.active ? Theme.alpha(stage.hue, 0.55) : Theme.hairline
                 Behavior on border.color { ColorAnimation { duration: Theme.normal } }
-                Rim { inset: Theme.radius }
+                Shadow { z: -1; anchors.fill: parent; radius: parent.radius; peak: 0.035; spread: 12; lift: 2 }
                 Label {
                     x: 14; y: 14
                     width: parent.width - 28; elide: Text.ElideRight
                     text: modelData.label
-                    font.pixelSize: 11; font.weight: Font.DemiBold; font.letterSpacing: 0.6
-                    font.capitalization: Font.AllUppercase
-                    color: Theme.faint
+                    font.pixelSize: 12
+                    color: Theme.muted
                 }
                 Label {
                     x: 14; y: 36
@@ -99,11 +98,17 @@ Item {
         id: recent
         y: 470; width: stage.width; height: 140
         opacity: Motion.seg(stage.reveal, 0.55, 1)
-        Label {
-            text: qsTr("Последние события")
-            font.pixelSize: 11; font.weight: Font.DemiBold; font.letterSpacing: 1.1
-            font.capitalization: Font.AllUppercase
-            color: Theme.faint
+        Rectangle {
+            width: recentChip.implicitWidth + 12; height: 20
+            radius: 5
+            color: Theme.clear
+            border.color: Theme.controlBorder
+            Label {
+                id: recentChip
+                anchors.centerIn: parent
+                text: "/" + qsTr("Последние события").toLowerCase()
+                font.family: Theme.mono; font.pixelSize: 11
+            }
         }
         Label {
             y: 28

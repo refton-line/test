@@ -43,8 +43,9 @@ Rectangle {
         width: target ? target.width : 0
         height: target ? target.height : 0
         radius: Theme.radiusSmall
-        color: Theme.surfaceRaised
-        Rim { inset: Theme.radiusSmall }
+        color: Theme.surface
+        border.color: Theme.hairline
+        Shadow { z: -1; anchors.fill: parent; radius: parent.radius; spread: 6; peak: 0.06; lift: 1 }
         opacity: frame.current >= 0 && target ? 1 : 0
         Behavior on x { enabled: frame.sliding; NumberAnimation { duration: Theme.thumbTravel; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.standardCurve } }
         Behavior on y { enabled: frame.sliding; NumberAnimation { duration: Theme.thumbTravel; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.standardCurve } }

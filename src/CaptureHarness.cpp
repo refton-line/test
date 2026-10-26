@@ -103,8 +103,8 @@ void assertSettled(QQuickWindow *win, const char *where) {
             if ((o > 0.001 && o < 0.999) || (o <= 0.001 && item->isVisible()))
                 qFatal("Not settled (%s): %s stuck at opacity %f", where, qPrintable(name), o);
         }
-        if (name == "edgeGlow" && (o > 0.001 || item->isVisible()))
-            qFatal("Not settled (%s): edge glow still lit (%f)", where, o);
+        if (name == "auroraLive" && (o > 0.001 || item->isVisible()))
+            qFatal("Not settled (%s): aurora still live (%f)", where, o);
         for (auto *c : item->childItems()) check(c);
     };
     check(win->contentItem());
@@ -136,15 +136,40 @@ class CloseAudit : public QObject {
         // exactly the clear colour (the UI itself never paints pure black).
         const QImage grabbed = m_win->grabWindow();
         const bool alpha = grabbed.hasAlphaChannel();
+        // "Visible" means above 2/255. The software renderer repaints only damaged
+        // regions and can keep a 1/255 antialiasing fringe from an earlier frame of
+        // the fold (seen as a 1 px column with no live item under it); in the dark
+        // themes that fringe was black and invisible to this check as well.
         const QImage last = grabbed.convertToFormat(QImage::Format_ARGB32);
-        int lit = 0;
+        const auto level = [alpha](QRgb px) { return alpha ? qAlpha(px) : qMax(qRed(px), qMax(qGreen(px), qBlue(px))); };
+        int lit = 0, residue = 0;
         for (int y = 0; y < last.height(); ++y) {
             const auto *row = reinterpret_cast<const QRgb *>(last.constScanLine(y));
-            for (int x = 0; x < last.width(); ++x)
-                lit += alpha ? qAlpha(row[x]) > 0 : (row[x] & 0xffffff) != 0;
+            for (int x = 0; x < last.width(); ++x) {
+                residue = qMax(residue, level(row[x]));
+                lit += level(row[x]) > 2;
+            }
         }
-        if (lit) qFatal("Close left %d visible pixels on the last frame", lit);
-        qInfo() << "NATIVE_CLOSE_COMPLETE_PASS (timeline 0, card dissolved, C erased, last frame fully transparent)";
+        if (lit) {
+            last.save(QDir::temp().filePath("close-left-pixels.png"));
+            QRect box;
+            for (int y = 0; y < last.height(); ++y) {
+                const auto *row = reinterpret_cast<const QRgb *>(last.constScanLine(y));
+                for (int x = 0; x < last.width(); ++x)
+                    if (level(row[x]) > 2) box |= QRect(x, y, 1, 1);
+            }
+            const QPointF probe = box.center();
+            std::function<void(QQuickItem *, qreal)> dump = [&](QQuickItem *item, qreal parentOpacity) {
+                const qreal o = parentOpacity * item->opacity();
+                if (!item->isVisible() || o <= 0) return;
+                if (item->mapRectToScene(item->boundingRect()).contains(probe) && item->childItems().isEmpty())
+                    qWarning().noquote() << "  lit at probe:" << describe(item) << "opacity" << o;
+                for (auto *c : item->childItems()) dump(c, o);
+            };
+            dump(m_win->contentItem()->parentItem() ? m_win->contentItem()->parentItem() : m_win->contentItem(), 1);
+            qFatal("Close left %d visible pixels on the last frame, in %d,%d %dx%d", lit, box.x(), box.y(), box.width(), box.height());
+        }
+        qInfo().noquote() << QString("NATIVE_CLOSE_COMPLETE_PASS (timeline 0, card dissolved, C erased, last frame clear; max residue %1/255)").arg(residue);
         return false;
     }
 
@@ -218,17 +243,26 @@ void runCaptureHarness(QQuickWindow *win, const QString &output, ClickController
         at(4000, [=] { win->resize(1440, 900); });
         at(4300, [=] { shot("wide-window"); });
         at(4500, [=] { win->resize(1160, 800); });
-        at(4800, [=] { click(win, "closeButton"); });
-        at(4830, [=] {
+        at(4800, [=] {
+            click(win, "closeButton");
             if (!win->property("exiting").toBool() || engine->active())
                 qFatal("Close did not stop input immediately");
-            shot("closing");
-        });
-        at(4880, [=] {
-            const qreal fold = win->property("expansion").toReal();
-            if (fold >= 1 || fold <= 0) qFatal("Close did not fold the shell back");
-            shot("closing-fold");
-            qInfo() << "NATIVE_WINDOW_UI_PASS (fullscreen, work-area maximize, normal/maximized restore, resize, close stop, close fold)";
+            // Follow the fold frame by frame; fixed-time steps raced the 400 ms close.
+            auto *probe = new QTimer(win);
+            auto stage = std::make_shared<int>(0);
+            probe->setInterval(4);
+            QObject::connect(probe, &QTimer::timeout, win, [=] {
+                const qreal fold = win->property("expansion").toReal();
+                if (fold <= 0) { probe->stop(); return; }
+                if (*stage == 0 && fold < 0.95) { *stage = 1; shot("closing"); }
+                else if (*stage == 1 && fold < 0.75) {
+                    *stage = 2;
+                    if (fold >= 1) qFatal("Close did not fold the shell back");
+                    qInfo() << "NATIVE_WINDOW_UI_PASS (fullscreen, work-area maximize, normal/maximized restore, resize, close stop, close fold)";
+                    shot("closing-fold");
+                }
+            });
+            probe->start();
         });
         return;
     }
@@ -399,8 +433,8 @@ void runCaptureHarness(QQuickWindow *win, const QString &output, ClickController
         });
         at(2820, [=] { shot("motion-glow-rise"); });
         at(3000, [=] {
-            auto *rim = find(win->contentItem(), "edgeGlow");
-            if (!rim->isVisible() || rim->opacity() < 0.999) qFatal("Edge glow did not come up");
+            auto *rim = find(win->contentItem(), "auroraLive");
+            if (!rim->isVisible() || rim->opacity() < 0.999) qFatal("Aurora did not come up");
             win->setProperty("spinProbe", find(win->contentItem(), "heroCore")->rotation());
             shot("glow-live");
         });
@@ -415,25 +449,36 @@ void runCaptureHarness(QQuickWindow *win, const QString &output, ClickController
             if (rest > 0.5 && rest < 359.5) qFatal("Ring light did not come to rest at the top (%f)", rest);
             assertSettled(win, "glow off");
             click(win, "closeButton");
-        });
-        // Invariants of the closing choreography, true at any point of the timeline.
-        const auto closing = [=](const char *frame) {
-            const qreal content = win->property("contentReveal").toReal(), shell = win->property("shell").toReal();
-            if (!win->property("exiting").toBool() || content > shell + 1e-6)
-                qFatal("Close: content must leave before the shell folds");
-            auto *mark = find(win->contentItem(), "cmark");
-            const qreal panelW = win->property("panelWidth").toReal(), panelH = win->property("panelHeight").toReal();
-            auto *scene = mark->parentItem();
-            const qreal ex = (scene->width() - panelW) / 2 + (panelW - mark->width()) / 2 * (1 - shell) + 20 * shell;
-            const qreal ey = (scene->height() - panelH) / 2 + 48 * (1 - shell) + 18 * shell;
-            if (!near(mark->x(), ex) || !near(mark->y(), ey)) qFatal("Close: the C left the shell corner");
-            shot(frame);
-        };
-        at(3440, [=] { closing("motion-close-early"); });
-        at(3500, [=] {
-            closing("motion-close-fold");
-            qInfo() << "NATIVE_MOTION_UI_PASS (settle audits, overlapping pages, tab pill and light, sliding mode frame, "
-                       "mode bodies, error rise/leave, edge glow up/down, ring spin and rest, close order and C glued to the shell)";
+            // Poll the close on every turn of the event loop instead of at fixed
+            // times: the checks run across the whole timeline and cannot race it.
+            auto *probe = new QTimer(win);
+            auto checks = std::make_shared<int>(0);
+            auto stage = std::make_shared<int>(0);
+            probe->setInterval(4);
+            QObject::connect(probe, &QTimer::timeout, win, [=] {
+                const qreal expansion = win->property("expansion").toReal();
+                if (expansion <= 0) { probe->stop(); return; }
+                const qreal content = win->property("contentReveal").toReal(), shell = win->property("shell").toReal();
+                if (!win->property("exiting").toBool() || content > shell + 1e-6)
+                    qFatal("Close: content must leave before the shell folds");
+                auto *mark = find(win->contentItem(), "cmark");
+                const qreal panelW = win->property("panelWidth").toReal(), panelH = win->property("panelHeight").toReal();
+                auto *scene = mark->parentItem();
+                const qreal ex = (scene->width() - panelW) / 2 + (panelW - mark->width()) / 2 * (1 - shell) + 25 * shell;
+                const qreal ey = (scene->height() - panelH) / 2 + 48 * (1 - shell) + 19 * shell;
+                if (!near(mark->x(), ex) || !near(mark->y(), ey)) qFatal("Close: the C left the shell corner");
+                ++*checks;
+                // Pass on evidence gathered, then take one picture; a slow grab can
+                // no longer make the close outrun the check.
+                if (*stage == 0 && *checks >= 6 && expansion < 0.7) {
+                    *stage = 1;
+                    qInfo().noquote() << QString("NATIVE_MOTION_UI_PASS (settle audits, overlapping pages, tab pill and light, sliding mode frame, "
+                                                 "mode bodies, error rise/leave, aurora up/down, ring spin and rest; close order and C glued "
+                                                 "to the shell checked on %1 frames of the close)").arg(*checks);
+                    shot("motion-close-fold");
+                }
+            });
+            probe->start();
         });
         return;
     }

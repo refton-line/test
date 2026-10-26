@@ -1,4 +1,12 @@
-# C clicker 0.8.0 Silver: QA
+# C clicker 0.9.0 Daylight: QA
+
+## Current 0.9.0 Daylight
+- Palette, fonts, shell layout, aurora and icon; no engine changes. `scripts/audit-ui.py` passes on the light palette; the lowest ratio is controlBorder on surfaceRaised at 3.33 (3.0 minimum).
+- The motion capture's close check was timer-based and failed intermittently on a cold start: a slow screenshot let the 400 ms close outrun the step. It now polls the close on every event-loop turn, checks the content-before-shell order and the C position on 11-20 frames per run, and passes on that evidence before taking its picture. 8 of 8 consecutive runs passed. Software frame times during the run: median 3 ms.
+- The edge-glow checks now target `auroraLive`: invisible at rest, fully up while live, gone after stopping, plus the existing pixel-identical settle frames.
+- All eight captures plus adaptive at 150 % pass. The icon in the EXE is byte-identical to app.ico in all nine sizes.
+- Visual review of every page and dialog against the reference. The first aurora drew discrete bars and a comb-like rest stripe and was rebuilt as smooth curtains; hard-edged streaks were replaced by soft radial ones.
+
 
 ## Current 0.8.0 palette
 Palette, icon and C mark only; no logic or motion changes. `scripts/audit-ui.py` passes (theme "Graphite / Silver"; the lowest ratio is controlBorder on accentSoft at 3.29 against a 3.0 minimum). The focus check on the primary face now uses focusOnAccent. All eight captures plus adaptive pass, including the settle and close-completion audits and NATIVE_ICON_PASS. The icon in the cross-built EXE is byte-identical to assets/app.ico in all nine sizes. Captures of every page and dialog were reviewed for leftovers of the old colours. One was found and removed: a warm-white glint dot on the icon.

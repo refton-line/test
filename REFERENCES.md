@@ -48,6 +48,10 @@ RAWKEYBOARD stores E0/E1 in Flags separately from MakeCode: https://learn.micros
 ### Qt AltGr editor bridge (0.4.7)
 QKeyEvent exposes key(), nativeVirtualKey() and nativeScanCode(): https://doc.qt.io/qt-6/qkeyevent.html . The bridge accepts explicit Qt::Key_AltGr; only on Windows it also interprets right-Alt native metadata. Raw Input remains the background source. Tests cover bridge/merge behavior, not every Windows layout/driver's real delivery.
 
+## 0.9.0 Daylight (October 26, 2026)
+- [tryliner.fun](https://tryliner.fun/), the user's reference, accessed October 26, 2026 with a real browser: full-page captures, a 34 s recording of load, hover and scroll, `style-B2h5E0D3.css` (colour tokens, transitions `cubic-bezier(.25,.8,.25,1)` / `(.22,1,.36,1)`, blur steps) and `index-CJQmwelm.js` (spring parameters). Taken: palette, Geist, path chips, floating pill nav, dark window-controls pill, cyan primary, blur-in, aurora.
+- [Geist](https://github.com/vercel/geist-font) v1.8.2 (released October 21, 2026), SIL OFL 1.1; static Regular/Medium/SemiBold and Mono Regular/Medium are bundled, with the licence in `licenses/Geist-OFL.txt`.
+
 ## 0.7.0 glow, palette, control model (October 26, 2026)
 Motion references from software, downloaded and frame-sampled rather than judged from static screenshots:
 - [New Raycast. Coming 2026](https://www.youtube.com/watch?v=Mi173xGb0ZA), Raycast, December 18, 2025 (39 s teaser, sampled at 1.6 and 8 fps). Taken: focused surfaces with a thin light edge on deep graphite, hotkey chips that land one by one, restrained colour used only for the active thing. Background: [The New Raycast](https://www.raycast.com/blog/the-new-raycast), May 14, 2026.

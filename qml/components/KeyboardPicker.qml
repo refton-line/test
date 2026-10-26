@@ -13,6 +13,7 @@ Popup {
     height: 556 * uiScale
     padding: 0
     modal: true
+    Overlay.modal: Rectangle { color: Theme.alpha(Theme.ink, 0.22) }
     focus: true
     property var engine
 

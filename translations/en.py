@@ -1,5 +1,6 @@
 # Russian source -> English. (context, source) keys override plain source keys.
 T = {
+"Сменить язык": "Switch language",
 "КПС": "CPS",
 "Стоп · %1": "Stop · %1",
 "Нажмите или %1": "Click or press %1",

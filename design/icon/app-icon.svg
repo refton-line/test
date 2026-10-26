@@ -1,36 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <!-- C clicker 0.8 icon, Graphite / Silver. Source for 64-256 px and previews (app-icon-small.svg covers 16-48 px). -->
+  <!-- C clicker 0.9 icon, Daylight: flat like the reference's icon. A near-black
+       plate and a crisp white C on a faint ring. 64-256 px and previews;
+       app-icon-small.svg covers 16-48 px. -->
   <defs>
     <linearGradient id="plate" x1="0" y1="40" x2="0" y2="984" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#26282d"/>
-      <stop offset="1" stop-color="#0a0b0d"/>
+      <stop offset="0" stop-color="#1b1c20"/>
+      <stop offset="1" stop-color="#0c0d10"/>
     </linearGradient>
-    <linearGradient id="rim" x1="0" y1="40" x2="0" y2="560" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#5b5e66"/>
-      <stop offset="1" stop-color="#5b5e66" stop-opacity="0"/>
-    </linearGradient>
-    <radialGradient id="ambient" cx="511.4" cy="512" r="400" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#ffffff" stop-opacity="0"/>
-      <stop offset="0.45" stop-color="#ffffff" stop-opacity="0.04"/>
-      <stop offset="0.655" stop-color="#ffffff" stop-opacity="0.16"/>
-      <stop offset="0.85" stop-color="#ffffff" stop-opacity="0.06"/>
-      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="silver" x1="709" y1="300" x2="300" y2="760" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#ffffff"/>
-      <stop offset="0.45" stop-color="#dfe2e7"/>
-      <stop offset="1" stop-color="#8d929c"/>
-    </linearGradient>
-    <filter id="bloom" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="34"/></filter>
-    <clipPath id="plateClip"><rect x="40" y="40" width="944" height="944" rx="236"/></clipPath>
   </defs>
   <rect x="40" y="40" width="944" height="944" rx="236" fill="url(#plate)"/>
-  <g clip-path="url(#plateClip)">
-    <rect x="40" y="40" width="944" height="944" fill="url(#ambient)"/>
-    <!-- The ring the C belongs to: the start button of the app. -->
-    <circle cx="511.4" cy="512" r="262" fill="none" stroke="#ffffff" stroke-opacity="0.10" stroke-width="22"/>
-    <path d="M709 340a262 262 0 1 0 0 344" fill="none" stroke="#ffffff" stroke-opacity="0.38" stroke-width="104" stroke-linecap="round" filter="url(#bloom)"/>
-  </g>
-  <rect x="43" y="43" width="938" height="938" rx="233" fill="none" stroke="url(#rim)" stroke-width="6"/>
-  <path d="M709 340a262 262 0 1 0 0 344" fill="none" stroke="url(#silver)" stroke-width="112" stroke-linecap="round"/>
+  <rect x="42" y="42" width="940" height="940" rx="234" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="4"/>
+  <circle cx="511.4" cy="512" r="262" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="18"/>
+  <path d="M709 340a262 262 0 1 0 0 344" fill="none" stroke="#ffffff" stroke-width="112" stroke-linecap="round"/>
 </svg>

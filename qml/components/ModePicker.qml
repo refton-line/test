@@ -65,7 +65,7 @@ Item {
                 gradient: Gradient {
                     orientation: Gradient.Horizontal
                     GradientStop { position: 0; color: Theme.clear }
-                    GradientStop { position: 0.5; color: Theme.alpha(Theme.ink, 0.16) }
+                    GradientStop { position: 0.5; color: Theme.alpha(Theme.sheen, 0.75) }
                     GradientStop { position: 1; color: Theme.clear }
                 }
                 NumberAnimation on t { id: glint; running: false; from: 0; to: 1; duration: Theme.glint; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.standardCurve }

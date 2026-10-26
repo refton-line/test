@@ -97,6 +97,19 @@ AbstractButton {
                 PathAngleArc { centerX: hero.cx; centerY: hero.cy; radiusX: halo.r; radiusY: halo.r; startAngle: 0; sweepAngle: 360 }
             }
         }
+        // Thin concentric guide rings, like the arcs behind the reference's call to action.
+        Repeater {
+            model: 2
+            Rectangle {
+                required property int index
+                readonly property real r: hero.ringRadius + 34 + index * 30
+                x: hero.cx - r; y: hero.cy - r
+                width: 2 * r; height: width; radius: r
+                color: Theme.clear
+                border.color: Theme.alpha(Theme.ink, 0.07 - index * 0.025)
+                opacity: hero.reveal
+            }
+        }
         // Ripples: one per burst of accepted clicks while live.
         Repeater {
             id: ripples
@@ -124,11 +137,12 @@ AbstractButton {
             Behavior on scale { SpringAnimation { spring: 6; damping: 0.42; epsilon: 0.0005 } }
             opacity: hero.reveal
             gradient: Gradient {
-                GradientStop { position: 0; color: Theme.surfaceRaised }
-                GradientStop { position: 1; color: Theme.surface }
+                GradientStop { position: 0; color: Theme.surface }
+                GradientStop { position: 1; color: Theme.canvas }
             }
             border.width: hero.visualFocus ? 2 : 1
             border.color: hero.visualFocus ? Theme.focus : Theme.hairline
+            Shadow { z: -1; anchors.fill: parent; radius: parent.radius; spread: 22; peak: 0.06; lift: 6 }
         }
         // Track and rotating core.
         Shape {
@@ -155,7 +169,7 @@ AbstractButton {
                 fillGradient: ConicalGradient {
                     centerX: hero.cx; centerY: hero.cy; angle: 90
                     GradientStop { position: 0.0; color: Theme.alpha(hero.hue, 0.95) }
-                    GradientStop { position: 0.05; color: Theme.alpha(Theme.ink, 1) }
+                    GradientStop { position: 0.05; color: Theme.alpha(Theme.sheen, 1) }
                     GradientStop { position: 0.13; color: Theme.alpha(hero.hue, 1) }
                     GradientStop { position: 0.42; color: Theme.alpha(hero.hue, 0.22) }
                     GradientStop { position: 0.72; color: Theme.alpha(hero.hue, 0.08) }
@@ -226,9 +240,9 @@ AbstractButton {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: hero.counting ? qsTr("Запуск через %1 с").arg(hero.engine.countdown)
                     : hero.live ? qsTr("Идёт отправка") : qsTr("Готов")
-                font.pixelSize: 12; font.weight: Font.DemiBold; font.letterSpacing: 1.2
-                font.capitalization: Font.AllUppercase
-                color: hero.live ? hero.hue : Theme.muted
+                font.family: Theme.mono
+                font.pixelSize: 12; font.weight: Font.Medium
+                color: hero.live ? Theme.ink : Theme.muted
                 Behavior on color { ColorAnimation { duration: Theme.normal } }
             }
             Label {
