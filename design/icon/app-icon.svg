@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- C clicker 0.9 icon, Daylight: flat like the reference's icon. A near-black
+       plate and a crisp white C on a faint ring. 64-256 px and previews;
+       app-icon-small.svg covers 16-48 px. -->
+  <defs>
+    <linearGradient id="plate" x1="0" y1="40" x2="0" y2="984" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1b1c20"/>
+      <stop offset="1" stop-color="#0c0d10"/>
+    </linearGradient>
+  </defs>
+  <rect x="40" y="40" width="944" height="944" rx="236" fill="url(#plate)"/>
+  <rect x="42" y="42" width="940" height="940" rx="234" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="4"/>
+  <circle cx="511.4" cy="512" r="262" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="18"/>
+  <path d="M709 340a262 262 0 1 0 0 344" fill="none" stroke="#ffffff" stroke-width="112" stroke-linecap="round"/>
+</svg>

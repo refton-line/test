@@ -1,0 +1,76 @@
+# Design research: October 20, 2026
+
+This is a curated working set, not a claim to have ranked all applications of 2025–2026. Product screenshots were inspected locally; links preserve their original attribution. No third-party application artwork is bundled in the release.
+
+| Source | Material examined | Applied to C clicker | Rejected |
+|---|---|---|---|
+| [Linear: UI refresh, March 12, 2026](https://linear.app/changelog/2026-03-12-ui-refresh) | Official release and redrawn icon / header changes | Clear hierarchy and repeatable chrome | Turning a utility into an issue tracker |
+| [Linear: Behind the latest refresh](https://linear.app/now/behind-the-latest-design-refresh) | Actual before/after sidebar, tab and border comparisons; header construction diagrams | Quiet navigation, stronger work area, fewer competing borders | Low-contrast text and decorative colored icon backgrounds |
+| [Raycast Windows 2025 changelog](https://www.raycast.com/changelog/windows/5) | Hotkey recorder screenshot and release notes, including October 27, 2025; launch images separately identified as marketing | Readable recorded key combinations, clear apply/cancel | Launch graphics are not product UI; no confetti or red glow copied |
+| [Raycast Windows 2026 changelog](https://www.raycast.com/changelog/windows) | Theme-aware monochrome app icons and automatic contrast adjustments | Semantic foreground-based icon tinting on dark and light controls | One fixed SVG color for every button state |
+| [Zed: 2025 recap](https://zed.dev/2025) | Dark Git panel, debugger workspace and Windows screenshot | Operational density, mono numerals, purposeful panel division | IDE-level tool density in a single-purpose clicker |
+| [PowerToys Command Palette](https://learn.microsoft.com/en-us/windows/powertoys/command-palette/overview) | Actual animated application interface, inspected frame; keyboard-first and compact-mode behavior | Labeled command affordances and visible keyboard context | Platform-specific acrylic effects and giant search UI |
+| [Affinity: new features](https://www.affinity.studio/help/introduction-new-features/) | Official text describing monochrome iconography, cleaner tools and unified shortcuts; screenshot fetch was blocked by a browser-support page | One icon weight, progressive disclosure of limits | Copying a creative-suite layout; no claim of visual inspection of blocked images |
+| [Affinity: Studios](https://www.affinity.studio/help/workspace-about-studios/) | Workflow-scoped tool and panel explanation | Each destination has only the controls needed there | Exposing all advanced controls on the main screen |
+
+## Attached examples and skills
+
+- Existing C clicker Beta 2 screenshots, QML, DESIGN.md and the supplied engine description were the product baseline. The two source ZIPs have identical sizes and duplicate contents; one working copy was edited.
+- The supplied `viora-design-skills` 4.2.0 and bundled artifact-design guidance were read and used. Native Qt build / image capture / QML theme audit replace web-only CSS and browser checks; a web checker alone does not verify this app.
+- IIOL is a gallery of 147+ experimental landing concepts, not a production desktop component library. Sample title/style metadata, including INK, was examined; it was not blindly imported into the click engine. Heavy fluid/background effects are intentionally excluded from the app.
+- Craft OS26 was explored as a research lead, but the live URL redirected to the general product homepage. It is not counted as a verified OS26 screenshot reference.
+
+## Darker palette follow-up
+
+User reference: [Spectra](https://getspectra.com/), inspected in its explicit Dark theme on October 20, 2026. Applied only the near-black neutral background and subtle surface steps, not the landing-page layout, pixel branding or dotted background. No Spectra assets are bundled.
+
+## Beta 4 — additional app-interface study
+
+Reviewed official product pages and their actual UI images, not only landing-page headlines:
+
+- [Raycast, new interface](https://www.raycast.com/new): compact command surfaces and inline shortcut hints. Inspected official look-and-feel image; did not copy glass, icons, logos or macOS chrome.
+- [Bear](https://bear.app/): strong separation of working regions, typography-first hierarchy and a quiet selected row. Inspected official Mac UI image. Kept C clicker's dark palette, not Bear's white editor or red branding.
+- [Things features](https://culturedcode.com/things/features/): progressive disclosure, quick-find selection and restrained grouping. Its illustrated Things 3 feature page contains historical imagery; this is not described as a 2026 redesign.
+- Existing [Linear UI research](https://linear.app/now/behind-the-latest-design-refresh) and the user's [Spectra dark reference](https://getspectra.com/) informed quiet structure and near-black neutral surfaces.
+
+Applied: cohesive segmented settings, fewer strong secondary-action outlines, an interval instrument well, measured session hierarchy and right-aligned dialog actions. No reference product images or assets are bundled in the app.
+
+## Red / Black variant
+User-pinned refinement: neutral black like the supplied Linear reference, with deep dark red accents only. The chosen hex values are original implementation tokens, not claimed exact Linear colors. No additional web research was needed for this palette-only pass.
+
+## 0.4.2 physical keyboard implementation
+- Microsoft RAWKEYBOARD structure: https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-rawkeyboard
+- Microsoft using Raw Input: https://learn.microsoft.com/en-us/windows/win32/inputdev/using-raw-input
+
+## 0.4.5 input validation note
+RAWKEYBOARD stores E0/E1 in Flags separately from MakeCode: https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-rawkeyboard . The decoder rejects high-bit/malformed scans instead of silently truncating them. SDL also explicitly skips the synthetic 0x21d Ctrl in its low-level hook (https://github.com/libsdl-org/SDL/blob/main/src/video/windows/SDL_windowsevents.c); that hook is not Raw Input and is not evidence that every layout/driver exposes the marker in RAWKEYBOARD. No global hook or timing-based AltGr guess was added to this application.
+
+### Qt AltGr editor bridge (0.4.7)
+QKeyEvent exposes key(), nativeVirtualKey() and nativeScanCode(): https://doc.qt.io/qt-6/qkeyevent.html . The bridge accepts explicit Qt::Key_AltGr; only on Windows it also interprets right-Alt native metadata. Raw Input remains the background source. Tests cover bridge/merge behavior, not every Windows layout/driver's real delivery.
+
+## 0.9.0 Daylight (October 26, 2026)
+- [tryliner.fun](https://tryliner.fun/), the user's reference, accessed October 26, 2026 with a real browser: full-page captures, a 34 s recording of load, hover and scroll, `style-B2h5E0D3.css` (colour tokens, transitions `cubic-bezier(.25,.8,.25,1)` / `(.22,1,.36,1)`, blur steps) and `index-CJQmwelm.js` (spring parameters). Taken: palette, Geist, path chips, floating pill nav, dark window-controls pill, cyan primary, blur-in, aurora.
+- [Geist](https://github.com/vercel/geist-font) v1.8.2 (released October 21, 2026), SIL OFL 1.1; static Regular/Medium/SemiBold and Mono Regular/Medium are bundled, with the licence in `licenses/Geist-OFL.txt`.
+
+## 0.7.0 glow, palette, control model (October 26, 2026)
+Motion references from software, downloaded and frame-sampled rather than judged from static screenshots:
+- [New Raycast. Coming 2026](https://www.youtube.com/watch?v=Mi173xGb0ZA), Raycast, December 18, 2025 (39 s teaser, sampled at 1.6 and 8 fps). Taken: focused surfaces with a thin light edge on deep graphite, hotkey chips that land one by one, restrained colour used only for the active thing. Background: [The New Raycast](https://www.raycast.com/blog/the-new-raycast), May 14, 2026.
+- [Linear changelog](https://linear.app/changelog) feature videos (three mp4s, 17–29 s, sampled at 1.2 fps; accessed October 26, 2026). Taken: depth and focus pulls on arriving surfaces, overlapping shared-axis travel, dark UI where the content carries the light.
+- [Beta of Wootility V5 is here!](https://wooting.io/post/beta-of-wootility-v5-is-here), Wooting, October 31, 2024, and [Wootility v5: What You Told Us](https://wooting.io/post/wootility-v5-what-you-told-us), May 16, 2025. Taken for the control scheme: features moved out of a cramped strip into clear navigation, a quick-settings area for common actions, profiles as an overview.
+- Apple Intelligence edge light, as described in [Apple Intelligence Siri Overlay Clone in SwiftUI](https://vp0.com/blogs/apple-intelligence-siri-overlay-clone-swiftui), VP0, June 7, 2026 (updated July 17, 2026). Secondary source; Apple publishes no spec. Taken: layered core / bloom / wash strokes, a rotating angular gradient, a glow that only exists in a real active state, no full-screen wash.
+- Qt 6.8 [Shapes](https://doc.qt.io/qt-6/qtquick-shapes-qmlmodule.html) (PathRectangle, ConicalGradient, RadialGradient) and [MultiEffect](https://doc.qt.io/qt-6/qml-qtquick-effects-multieffect.html), present in the bundled Qt 6.8.3 for both gcc_64 and mingw_64.
+
+## 0.6.1 motion (October 26, 2026)
+- [Material 3 easing and duration tokens](https://m3.material.io/styles/motion/easing-and-duration/tokens-specs): standard cubic-bezier(0.2, 0, 0, 1), emphasized decelerate (0.05, 0.7, 0.1, 1), emphasized accelerate (0.3, 0, 0.8, 0.15). Values cross-checked in the published token list ([material-web motion tokens](https://raw.githubusercontent.com/material-components/material-web/main/tokens/versions/v0_192/_md-sys-motion.scss)). The page notes that M3 Expressive moves components to springs; applied springs only to direct manipulation (press, knobs) and kept curves for transitions. The shared-axis pattern (outgoing fades fast, incoming follows along the navigation axis) follows the same system.
+- Qt [Easing.BezierSpline](https://doc.qt.io/qt-6/qml-qtquick-propertyanimation.html#easing-prop) and [SpringAnimation](https://doc.qt.io/qt-6/qml-qtquick-springanimation.html) in Qt 6.8.
+
+## 0.6.0 languages (October 26, 2026)
+- [Qt 6.8 qt_add_translations](https://doc.qt.io/qt-6.8/qtlinguist-cmake-qt-add-translations.html) and [QQmlEngine::retranslate](https://doc.qt.io/qt-6/qqmlengine.html#retranslate): build-time `.qm` embedded as resources; live switching re-evaluates `qsTr` bindings without restart. Checked against the installed 6.8.3 CMake macros (RESOURCE_PREFIX cannot be combined with QM_FILES_OUTPUT_VARIABLE, so tests load the `.qm` from the build directory).
+- The opening morph already in the app is the reference for the close animation: the same expansion parameter runs backwards, so closing reads as the opening in reverse rather than a new effect.
+
+## 0.5.0 click modes (October 26, 2026)
+- [OP Auto Clicker features](https://opautoclicker.io/features.html), 4.1 notes (read as text, no screenshots inspected): a base interval plus an optional "Random offset ±" millisecond field (100 ms ± 40 ms), mouse button choice and repeat-until-stopped/count. Applied: randomness as a first-class, opt-in parameter next to the interval (Custom ± %), button choice and limits kept as compact rows. Rejected: hours/minutes/seconds/ms field grid, which doesn't suit a CPS-oriented tool.
+- CPS ranges are the established control vocabulary of gaming auto-clickers. Applied as a two-handle range plus named presets instead of two separate numeric fields. No third-party UI or assets copied.
+- [Qt 6 RangeSlider](https://doc.qt.io/qt-6/qml-qtquick-controls-rangeslider.html): native two-handle control with keyboard support, restyled with Theme tokens.
+- Win32 [SendInput](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-sendinput) vs. posted [WM_LBUTTONDOWN](https://learn.microsoft.com/en-us/windows/win32/inputdev/wm-lbuttondown): SendInput enters the system input stream like a device, while posted messages reach only the target window's queue and do not update cursor/async button state. This split is the Legit / Blatant delivery difference.
+- Existing Linear / Raycast / Affinity notes above (progressive disclosure, compact header controls, mono numerals) informed placing the mode switch in the heading row and showing only that mode's controls.

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- 16-48 px variant: tighter margin, heavier C, no ring or hairlines. -->
+  <rect x="16" y="16" width="992" height="992" rx="224" fill="#141519"/>
+  <path d="M736 316a300 300 0 1 0 0 392" fill="none" stroke="#ffffff" stroke-width="150" stroke-linecap="round"/>
+</svg>

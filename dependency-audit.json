@@ -1,0 +1,6 @@
+{
+  "release": "0.4.7-altgrcapture",
+  "PE_files_audited": 110,
+  "unresolved_non_system_DLLs": [],
+  "note": "Static normal imports only; no Windows execution."
+}
