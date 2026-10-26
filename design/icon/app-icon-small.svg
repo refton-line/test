@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- 16-48 px variant: tighter margin, heavier C, no blur or hairlines that turn to mush. -->
+  <defs>
+    <linearGradient id="plate" x1="0" y1="16" x2="0" y2="1008" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#232a3d"/>
+      <stop offset="1" stop-color="#0b0d13"/>
+    </linearGradient>
+    <linearGradient id="ember" x1="720" y1="280" x2="280" y2="780" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff8a4c"/>
+      <stop offset="0.5" stop-color="#ff4d5e"/>
+      <stop offset="1" stop-color="#e3324d"/>
+    </linearGradient>
+    <radialGradient id="ambient" cx="512" cy="512" r="470" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff4d5e" stop-opacity="0"/>
+      <stop offset="0.64" stop-color="#ff4d5e" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#ff4d5e" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="16" y="16" width="992" height="992" rx="224" fill="url(#plate)"/>
+  <rect x="16" y="16" width="992" height="992" rx="224" fill="url(#ambient)"/>
+  <path d="M736 316a300 300 0 1 0 0 392" fill="none" stroke="url(#ember)" stroke-width="150" stroke-linecap="round"/>
+</svg>

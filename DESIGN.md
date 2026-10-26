@@ -41,6 +41,11 @@ validKey and validChordKey agree on physical side-specific modifiers and PrintSc
 ## AltGrCapture 0.4.7
 No new visual controls. An editor-only Qt right-Alt bridge supplements Raw Input capture. Press identity uses explicit AltGr or Windows right-side native metadata, not translated modifier flags. The editor selects on held-state union rising edges to coalesce both deliveries; releasing one source does not release another. Background matching and storage remain unchanged.
 
+## Icon and startup card 0.7.1
+Icon (`design/icon/`): graphite plate (#1d2232 to #090b10, lit top rim), the C on its ring (the start button) with an ember gradient #ff8a4c / #ff4d5e / #d52a46, a blurred bloom, a ring-shaped ambient glow that peaks at the C radius (same falloff as the hero halo), gloss along the outer top and a glint at the leading end. 16–48 px use app-icon-small.svg: 16 px margin, C stroke 150/1024 instead of 112, no blur or hairlines, only a gradient ambient. The ICO holds 32-bit BMP entries 16–128 px and a PNG 256 px entry; `build.sh` regenerates it, and CMake now rebuilds the Windows resource when app.ico changes (OBJECT_DEPENDS).
+
+Startup card: the plate gradient and rim, the C in a 62 px ring; the ring is the progress bar (track + round-capped arc from 12 o'clock with a glint at its head), with a breathing halo while loading, one flare when ready, and the current startup step under the title (each new step settles in from below). On reveal the ring grows by 55 % and thins while fading (handoff = expansion 0–0.42), so the C leaves for the title bar on its own.
+
 ## Ember / Graphite and the control model 0.7.0
 Research (see REFERENCES): motion references from software, not static shots. The new Raycast teaser (frame-sampled) for focused surfaces with a soft light edge and spring-like key chips; Linear changelog videos for depth, shared-axis travel and focus pulls; Wootility v5 for the control model (features moved to a clear navigation surface, a quick-settings area, profiles as an overview); the Apple Intelligence edge light for the glow grammar (layered core + bloom + wash strokes, a rotating conical colour field, tied to a real state and absent when idle).
 

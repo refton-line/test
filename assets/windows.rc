@@ -1,8 +1,8 @@
 #include <windows.h>
 IDI_ICON1 ICON "app.ico"
 1 VERSIONINFO
- FILEVERSION 0,7,0,0
- PRODUCTVERSION 0,7,0,0
+ FILEVERSION 0,7,1,0
+ PRODUCTVERSION 0,7,1,0
  FILEFLAGSMASK 0x3fL
  FILEFLAGS VS_FF_PRERELEASE
  FILEOS VOS_NT_WINDOWS32
@@ -13,11 +13,11 @@ BEGIN
   BLOCK "040904b0"
   BEGIN
    VALUE "FileDescription", "C clicker\0"
-   VALUE "FileVersion", "0.7.0-glow\0"
+   VALUE "FileVersion", "0.7.1-glow\0"
    VALUE "InternalName", "CClicker\0"
    VALUE "OriginalFilename", "CClicker.exe\0"
    VALUE "ProductName", "C clicker\0"
-   VALUE "ProductVersion", "0.7.0-glow\0"
+   VALUE "ProductVersion", "0.7.1-glow\0"
   END
  END
  BLOCK "VarFileInfo"

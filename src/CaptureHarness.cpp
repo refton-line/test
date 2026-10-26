@@ -749,6 +749,11 @@ void runCaptureHarness(QQuickWindow *win, const QString &output, ClickController
         if (!start || start->property("text").toString() != QCoreApplication::translate("SettingsPanel", "Запустить") ||
             start->property("hint").isValid() || !start->property("tip").toString().isEmpty())
             qFatal("Activation hint returned to the run button");
+        // The window icon must load from the embedded .ico with every size it ships.
+        const QList<QSize> iconSizes = QGuiApplication::windowIcon().availableSizes();
+        for (int side : {16, 20, 24, 32, 40, 48, 64, 128, 256})
+            if (!iconSizes.contains(QSize(side, side))) qFatal("Window icon is missing the %dpx entry", side);
+        qInfo() << "NATIVE_ICON_PASS (window icon loaded from app.ico, 9 sizes 16-256)";
         qInfo() << "NATIVE_CLEAN_UI_PASS (no Beta/profile/footer clutter, no activation badge or tooltip)";
         qInfo() << "NATIVE_SEGMENTED_UI_PASS (44px targets, contained geometry, arrow focus, Space activation)";
     });

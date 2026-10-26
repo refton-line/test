@@ -375,8 +375,10 @@ ApplicationWindow {
             BootStage {
                 anchors.fill: parent
                 progress: startup.progress; ready: startup.done
-                opacity: 1 - Motion.accelerate(Motion.seg(win.expansion, 0, 0.2))
-                transform: Translate { y: -10 * Motion.seg(win.expansion, 0, 0.2) }
+                message: startup.message
+                // Long enough for the ring ripple to read while the card unfolds.
+                handoff: Motion.seg(win.expansion, 0, 0.42)
+                opacity: 1 - Motion.accelerate(Motion.seg(win.expansion, 0.04, 0.42))
                 visible: opacity > 0 && startup.error === "" && !win.exiting
             }
             Rectangle {

@@ -20,7 +20,7 @@ for bg in ['canvas','workspace','rail','surface','surfaceRaised','accentSoft']:
   pairs.append((fg,bg,4.5))
  for fg in ['focus','controlBorder']:
   pairs.append((fg,bg,3))
-pairs += [('accentInk','accent',4.5),('accentInk','accentHover',4.5),('accentInk','primaryHint',4.5),('danger','surface',4.5),('focus','accent',3),('focus','accentHover',3)]
+pairs += [('accentInk','accent',4.5),('accentInk','accentEnd',4.5),('accentInk','accentHover',4.5),('accentInk','primaryHint',4.5),('danger','surface',4.5),('focus','accent',3),('focus','accentHover',3)]
 for bg in ['canvas','workspace','rail','surface','surfaceRaised','accentSoft']:
  pairs.append(('brand',bg,3))
 errors=[];results=[]
@@ -32,7 +32,9 @@ for p in (root/'qml').rglob('*.qml'):
 # Verify static and dynamic icon paths, including the window-state pairs.
 icons=set()
 for p in (root/'qml').rglob('*.qml'):
- icons.update(re.findall(r'(?<![\w.])(?:glyph|name):\s*"([\w-]+)"',p.read_text()))
+ # State { name: "..." } names a state, not an icon.
+ for line in p.read_text().splitlines():
+  if 'State {' not in line: icons.update(re.findall(r'(?<![\w.])(?:glyph|name):\s*"([\w-]+)"',line))
 icons.update(['mouse','activity','keyboard','folder','maximize','restore','fullscreen','minimize','x','minus','play','square'])
 for icon in icons:
  if not (root/'assets'/f'{icon}.svg').exists():errors.append('Missing icon: '+icon)

@@ -1,4 +1,12 @@
-# C clicker 0.7.0 Glow: QA
+# C clicker 0.7.1 Glow: QA
+
+## Current 0.7.1 icon and startup card
+- `NATIVE_ICON_PASS`: QGuiApplication::windowIcon() loaded from the embedded app.ico exposes all nine sizes (16, 20, 24, 32, 40, 48, 64, 128, 256).
+- The icon resource extracted from the cross-built CClicker.exe (wrestool) has the same nine entries as assets/app.ico, and each extracted image is byte-identical. Before the CMake fix the EXE still carried the old icon; that is how the missing dependency was found.
+- `scripts/audit-ui.py` passes again. The 0.7.0 redesign had broken it with accentInk on accentHover at 4.24 (now #d42d45, 4.57). The audit now also checks accentEnd (was 4.43, now #c63a27, 4.83). Its icon scan no longer mistakes `State { name: ... }` for an icon name.
+- The startup card was reviewed in captures and in a real-time recording (xcb, OpenGL/llvmpipe): ring fill with glint, ready flare, ripple handoff. The breathing loop runs only while the card is visible and loading, so the settle audit after opening stays clean.
+- Icon sizes were checked on dark and light backgrounds at 1x and zoomed. 16–48 px come from the small variant because the full one turned muddy at 40–48 px.
+
 
 ## Current 0.7.0 design, glow and control model
 No engine or storage changes; 725 unit assertions unchanged; translations_complete now covers 236 messages. All eight capture modes pass plus adaptive at 150 %. New in the harness:
