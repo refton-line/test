@@ -14,7 +14,7 @@ RangeSlider {
     second.value: engine.cpsMax
     first.onMoved: engine.setCpsRange(Math.round(first.value), engine.cpsMax)
     second.onMoved: engine.setCpsRange(engine.cpsMin, Math.round(second.value))
-    Accessible.name: "Диапазон кликов в секунду"
+    Accessible.name: qsTr("Диапазон кликов в секунду")
     opacity: enabled ? 1 : 0.5
 
     background: Item {

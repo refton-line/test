@@ -1,3 +1,4 @@
+#include <QCoreApplication>
 #include "ClickController.h"
 #include "Timing.h"
 #include "ClickPattern.h"
@@ -66,13 +67,13 @@ QString loop(const ClickConfig &c, LoopState &state) {
     Timing::GapStats gaps;
     HWND target = GetForegroundWindow();
     if (!target || ours(target))
-        return "Выберите целевое окно до конца отсчёта.";
+        return QCoreApplication::translate("ClickController", "Выберите целевое окно до конца отсчёта.");
     LARGE_INTEGER f;
     if (!QueryPerformanceFrequency(&f) || f.QuadPart <= 0)
-        return "Счётчик Windows недоступен.";
+        return QCoreApplication::translate("ClickController", "Счётчик Windows недоступен.");
     TimerHandle timer;
     if (!timer.value)
-        return "Не удалось создать таймер Windows.";
+        return QCoreApplication::translate("ClickController", "Не удалось создать таймер Windows.");
     const qint64 begin = tick(), limit = c.duration ? begin + f.QuadPart * c.duration : 0;
     const Timing::TickGrid grid(begin, f.QuadPart, c.interval);
     const auto ticks = [&](qint64 ns) {
@@ -94,18 +95,18 @@ QString loop(const ClickConfig &c, LoopState &state) {
     }
     input[0].mi.dwFlags = down[c.button];
     input[1].mi.dwFlags = up[c.button];
-    const QString pressRejected = pattern.messages ? "Окно отклонило сообщение клика."
-                                                   : "Windows отклонила нажатие.";
+    const QString pressRejected = pattern.messages ? QCoreApplication::translate("ClickController", "Окно отклонило сообщение клика.")
+                                                   : QCoreApplication::translate("ClickController", "Windows отклонила нажатие.");
     const QString releaseRejected = pattern.messages
-                                        ? "Окно отклонило отпускание кнопки. Отправка остановлена."
-                                        : "Windows отклонила отпускание кнопки. Отправка остановлена.";
+                                        ? QCoreApplication::translate("ClickController", "Окно отклонило отпускание кнопки. Отправка остановлена.")
+                                        : QCoreApplication::translate("ClickController", "Windows отклонила отпускание кнопки. Отправка остановлена.");
     while (!cancel.load()) {
         int waited =
             waitUntil(limit ? std::min(deadline, limit) : deadline, f.QuadPart, stop, timer.value);
         if (waited == 1)
             return {};
         if (waited == 2)
-            return "Ошибка таймера Windows.";
+            return QCoreApplication::translate("ClickController", "Ошибка таймера Windows.");
         qint64 now = tick();
         if (limit && now >= limit)
             return {};
@@ -113,18 +114,18 @@ QString loop(const ClickConfig &c, LoopState &state) {
         const auto thread = GetWindowThreadProcessId(target, &pid);
         if (!IsWindow(target) || GetForegroundWindow() != target || pid != targetPid ||
             thread != targetThread)
-            return "Остановлено: целевое окно потеряло фокус.";
+            return QCoreApplication::translate("ClickController", "Остановлено: целевое окно потеряло фокус.");
         POINT point;
         if (!GetCursorPos(&point))
-            return "Не удалось получить позицию курсора.";
+            return QCoreApplication::translate("ClickController", "Не удалось получить позицию курсора.");
         HWND under = WindowFromPoint(point);
         if (!under || GetAncestor(under, GA_ROOT) != target)
-            return "Остановлено: курсор вне целевого окна.";
+            return QCoreApplication::translate("ClickController", "Остановлено: курсор вне целевого окна.");
         // Reject an already-held button at start. Do not confuse our own injected
         // async button state with a new physical press during subsequent clicks.
         const int vk[]{VK_LBUTTON, VK_RBUTTON, VK_MBUTTON};
         if (count.load() == 0 && (GetAsyncKeyState(vk[c.button]) & 0x8000))
-            return "Остановлено: кнопка мыши уже удерживается.";
+            return QCoreApplication::translate("ClickController", "Остановлено: кнопка мыши уже удерживается.");
         if (cancel.load())
             return {};
         const auto step = generator.next();
@@ -155,7 +156,7 @@ QString loop(const ClickConfig &c, LoopState &state) {
             if (sent != 2) {
                 if (sent == 1 && SendInput(1, input + 1, sizeof(INPUT)) == 1)
                     acceptPair();
-                return "Windows отклонила ввод. Проверьте права целевого окна.";
+                return QCoreApplication::translate("ClickController", "Windows отклонила ввод. Проверьте права целевого окна.");
             }
         } else {
             if (!press(true))
@@ -174,7 +175,7 @@ QString loop(const ClickConfig &c, LoopState &state) {
             cancelled = held == 1;
             if (held == 2) {
                 acceptPair();
-                return "Ошибка таймера удержания.";
+                return QCoreApplication::translate("ClickController", "Ошибка таймера удержания.");
             }
         }
         const auto accepted = acceptPair();
@@ -205,7 +206,7 @@ void ClickController::runWorker() {
         static_cast<HANDLE>(m_stopEvent), m_cancel, m_clicks, m_skipped, m_maxLateNs, m_delivery};
     reason = loop(m_config, state);
 #else
-    reason = "Движок ввода доступен только в Windows.";
+    reason = QCoreApplication::translate("ClickController", "Движок ввода доступен только в Windows.");
 #endif
     m_endNs = Timing::nowNs();
     QMetaObject::invokeMethod(this, [this, reason] { complete(reason); }, Qt::QueuedConnection);

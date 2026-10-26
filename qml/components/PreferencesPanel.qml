@@ -9,7 +9,7 @@ Item {
     property var keyboard
     readonly property int bindingHeight: Math.max(164, 76 + 56 * Math.ceil(Math.max(engine.startBindings.length, engine.stopBindings.length) / 2))
     Label {
-        text: "Управление"
+        text: qsTr("Управление")
         font.pixelSize: Theme.title
         font.weight: Font.DemiBold
     }
@@ -18,7 +18,7 @@ Item {
         anchors.right: parent.right
         text: ""
         glyph: "undo"
-        Accessible.name: "Сбросить назначения"
+        Accessible.name: qsTr("Сбросить назначения")
         enabled: !panel.engine.active
         onClicked: panel.engine.resetBindings()
 
@@ -42,7 +42,7 @@ Item {
                 Label {
                     x: 20
                     y: 20
-                    text: bindingCard.stopAction ? "Остановка" : "Запуск"
+                    text: bindingCard.stopAction ? qsTr("Остановка") : qsTr("Запуск")
                     font.pixelSize: 18
                     font.weight: Font.Medium
                 }
@@ -53,7 +53,7 @@ Item {
                     text: ""
                     glyph: "plus"
                     quiet: true
-                    Accessible.name: "Добавить назначение"
+                    Accessible.name: qsTr("Добавить назначение")
                     enabled: !panel.engine.active && bindingCard.bindings.length < 8
                     onClicked: panel.keyboard.edit(bindingCard.index, bindingCard.bindings.length)
 
@@ -85,7 +85,7 @@ Item {
                                 text: ""
                                 glyph: "x"
                                 quiet: true
-                                Accessible.name: "Удалить назначение"
+                                Accessible.name: qsTr("Удалить назначение")
                                 visible: bindingCard.bindings.length > 1
                                 enabled: !panel.engine.active
                                 onClicked: panel.engine.removeBinding(bindingCard.stopAction, parent.index)
@@ -101,7 +101,7 @@ Item {
         y: 88 + panel.bindingHeight
         width: parent.width
         Label {
-            text: "Отсчёт запуска"
+            text: qsTr("Отсчёт запуска")
             font.pixelSize: 14
             Layout.fillWidth: true
         }
@@ -110,12 +110,12 @@ Item {
             from: 1
             to: 10
             value: panel.engine.launchDelaySec
-            suffix: "Отсчёт запуска в секундах"
+            suffix: qsTr("Отсчёт запуска в секундах")
             enabled: !panel.engine.active
             onValueModified: panel.engine.launchDelaySec = value
         }
         Label {
-            text: "с"
+            text: qsTr("с")
             font.pixelSize: 14
             color: Theme.muted
             Layout.preferredWidth: 24

@@ -3,6 +3,7 @@
 #include "Timing.h"
 #include "PhysicalKeyboard.h"
 #include "ClickPattern.h"
+#include "Language.h"
 #include <cmath>
 #include <QDebug>
 #include <QFile>
@@ -893,6 +894,35 @@ int main(int argc, char **argv) {
         const auto skip = Timing::advance(100, 1000, 300);
         // Slots at 400, 700 and 1000 are already due at t=1000: three dropped, next at 1300.
         check(skip.deadline == 1300 && skip.skipped == 3, "variable scheduler drops missed gaps");
+    }
+    {
+        // ---- Interface language: English default, Russian source, persistence ----
+        QSettings().clear();
+        LanguageController lang(CCLICKER_QM_DIR);
+        check(lang.language() == "en" && lang.locale() == "en_US", "fresh install defaults to English");
+        check(lang.languages().size() == 2, "two interface languages");
+        ClickConfig legitDefault;
+        check(ClickPattern::describe(legitDefault) == QStringLiteral("Legit · 9–13 CPS"), "English mode summary");
+        ClickController english;
+        check(english.state() == "Ready", "English run state");
+        english.setLaunchDelaySec(0);
+        check(english.error() == "Settings out of range. Hold must be shorter than the interval.",
+              "English validation error");
+        check(QCoreApplication::translate("SettingsPanel", "Запустить") == "Start", "QML strings translated");
+        check(!lang.setLanguage("de") && lang.language() == "en", "unknown language rejected");
+        check(lang.setLanguage("ru") && lang.language() == "ru" && lang.locale() == "ru_RU" &&
+                  QSettings().value("ui/language").toString() == "ru",
+              "switch to Russian is stored");
+        check(ClickPattern::describe(legitDefault) == QStringLiteral("Легит · 9–13 КПС"), "Russian mode summary");
+        check(english.state() == QStringLiteral("Готов"), "state text follows the language");
+        { LanguageController reopened(CCLICKER_QM_DIR);
+          check(reopened.language() == "ru", "language persists across restarts"); }
+        check(lang.setLanguage("en") && ClickPattern::modeName(BlatantMode) == "Blatant", "switch back to English");
+        { LanguageController broken(QStringLiteral("/nonexistent-catalogue"));
+          check(broken.language() == "ru", "missing catalogue falls back to the Russian source"); }
+        QSettings().setValue("ui/language", "xx");
+        { LanguageController junk(CCLICKER_QM_DIR);
+          check(junk.language() == "en", "invalid stored language falls back to English"); }
     }
     QSettings().clear();
     qInfo() << "CONTROLLER_CONFIG_TIMING_PASS" << checks << "assertions";

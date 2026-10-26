@@ -9,17 +9,17 @@ Item {
     readonly property real low: gaps.length ? Math.min.apply(null, gaps) : 0
     readonly property real high: gaps.length ? Math.max.apply(null, gaps) : 0
     implicitHeight: 52
-    function fmt(v) { return v.toLocaleString(Qt.locale("ru_RU"), 'f', v < 10 ? 1 : 0) }
+    function fmt(v) { return v.toLocaleString(Qt.locale(i18n.locale), 'f', v < 10 ? 1 : 0) }
     Label {
         id: caption
-        text: "Ритм"
+        text: qsTr("Ритм")
         color: Theme.muted; font.pixelSize: Theme.small
     }
     Label {
         anchors.right: parent.right
         text: strip.gaps.length === 0 ? "" : strip.high - strip.low < 0.05
-              ? "ровно " + strip.fmt(strip.low) + " мс"
-              : strip.fmt(strip.low) + "–" + strip.fmt(strip.high) + " мс"
+              ? qsTr("ровно %1 мс").arg(strip.fmt(strip.low))
+              : strip.fmt(strip.low) + "–" + strip.fmt(strip.high) + qsTr(" мс")
         color: Theme.muted; font.family: Theme.mono; font.pixelSize: 12
     }
     Row {

@@ -1,4 +1,5 @@
 #include "Configuration.h"
+#include <QCoreApplication>
 #include <QJsonArray>
 #include <QJsonValue>
 #include <QMap>
@@ -14,13 +15,13 @@ bool validKey(int k) {
 }
 QString bindingError(int k, int m, int t, int n) {
     if (!validKey(k) || !validKey(t) || m < 0 || m > 7 || n < 0 || n > 7)
-        return "Эта клавиша не поддерживается. F12 и системные клавиши зарезервированы.";
+        return QCoreApplication::translate("Configuration", "Эта клавиша не поддерживается. F12 и системные клавиши зарезервированы.");
     if (k == t && m == n)
-        return "Запуск и остановка должны иметь разные сочетания.";
+        return QCoreApplication::translate("Configuration", "Запуск и остановка должны иметь разные сочетания.");
     for (auto b : {qMakePair(k, m), qMakePair(t, n)}) {
         if ((b.first == 46 && (b.second & 3) == 3) || (b.first == 9 && (b.second & 2)) ||
             (b.first == 27 && (b.second & 3)))
-            return "Сочетание зарезервировано Windows. Выберите другое.";
+            return QCoreApplication::translate("Configuration", "Сочетание зарезервировано Windows. Выберите другое.");
     }
     return {};
 }
@@ -34,13 +35,13 @@ QString validate(const ClickConfig &c) {
     if (c.mode < LegitMode || c.mode > CustomMode || c.cpsMin < 1 || c.cpsMax > 30 ||
         c.cpsMin > c.cpsMax || c.jitter < 0 || c.jitter > 50 || c.delivery < EmulatedDelivery ||
         c.delivery > MessageDelivery)
-        return "Параметры режима вне диапазона: КПС 1–30, разброс 0–50 %.";
+        return QCoreApplication::translate("Configuration", "Параметры режима вне диапазона: КПС 1–30, разброс 0–50 %.");
     if (c.interval < minInterval(c.mode) || c.interval > 10000 || c.duration < 0 || c.duration > 3600 ||
         c.button < 0 || c.button > 2 || c.hold < 0 || c.hold > 100 || c.hold >= c.interval ||
         c.countLimit > 1000000000ULL || c.launchDelay < 1 || c.launchDelay > 10)
-        return "Параметры вне диапазона. Удержание должно быть короче интервала.";
+        return QCoreApplication::translate("Configuration", "Параметры вне диапазона. Удержание должно быть короче интервала.");
     if (c.startExtra.size() > 7 || c.stopExtra.size() > 7)
-        return "Не больше восьми назначений на действие.";
+        return QCoreApplication::translate("Configuration", "Не больше восьми назначений на действие.");
     QList<KeyBinding> used;
     for (bool stop : {false, true})
         for (const auto &binding : bindings(c, stop)) {
@@ -51,15 +52,15 @@ QString validate(const ClickConfig &c) {
                 // Explicit opposite chords are validated independently below.
                 if (!error.isEmpty() && (stop ? c.startChord : c.stopChord).isEmpty()) return error;
                 if (!validKey(binding.key) || binding.mods < 0 || binding.mods > 7)
-                    return "Некорректное прежнее назначение.";
+                    return QCoreApplication::translate("Configuration", "Некорректное прежнее назначение.");
             } else if (keys.size() < 1 || keys.size() > 3) {
-                return "В сочетании — от одной до трёх клавиш.";
+                return QCoreApplication::translate("Configuration", "В сочетании — от одной до трёх клавиш.");
             }
             QSet<int> unique;
             bool ctrl = false, alt = false, shift = false;
             for (int key : keys) {
                 if ((!validChordKey(key) && !(binding.keys.isEmpty() && key >= 16 && key <= 18)) || unique.contains(key))
-                    return "Неподдерживаемая или повторяющаяся клавиша.";
+                    return QCoreApplication::translate("Configuration", "Неподдерживаемая или повторяющаяся клавиша.");
                 unique.insert(key);
                 ctrl |= key == 17 || key == 162 || key == 163;
                 alt |= key == 18 || key == 164 || key == 165;
@@ -68,7 +69,7 @@ QString validate(const ClickConfig &c) {
             if ((ctrl && alt && unique.contains(46)) || (alt && unique.contains(9)) ||
                 ((ctrl || alt) && unique.contains(27)) || (alt && unique.contains(115)) ||
                 (ctrl && shift && unique.contains(27)))
-                return "Сочетание зарезервировано Windows. Выберите другое.";
+                return QCoreApplication::translate("Configuration", "Сочетание зарезервировано Windows. Выберите другое.");
             // Reject subset/side-generic overlaps: a smaller chord would fire before the larger one.
             auto covers = [](const QList<int> &a, const QList<int> &b) {
                 for (int k : a) {
@@ -83,7 +84,7 @@ QString validate(const ClickConfig &c) {
             for (const auto &other : used) {
                 const auto previous = chordKeys(other);
                 if (covers(keys, previous) || covers(previous, keys))
-                    return "Сочетание уже назначено или пересекается с более коротким.";
+                    return QCoreApplication::translate("Configuration", "Сочетание уже назначено или пересекается с более коротким.");
             }
             used.append(binding);
         }
@@ -138,7 +139,7 @@ bool decode(const QJsonObject &input, ClickConfig &out, QString &error) {
             ok = ok && p[k].isDouble() && std::isfinite(p[k].toDouble()) &&
                  p[k].toDouble() == p[k].toInt();
         if (!ok) {
-            error = "Некорректный блок режима кликов.";
+            error = QCoreApplication::translate("Configuration", "Некорректный блок режима кликов.");
             return false;
         }
         c.mode = p["mode"].toInt();
@@ -151,13 +152,13 @@ bool decode(const QJsonObject &input, ClickConfig &out, QString &error) {
     const QStringList fields = {"intervalMs", "durationSec", "mouseButton", "holdMs",  "countLimit",
                                 "startKey",   "startMods",   "stopKey",     "stopMods"};
     if (o.size() != fields.size() && o.size() != fields.size() + 3 && o.size() != fields.size() + 5) {
-        error = "Неполная или неизвестная схема параметров.";
+        error = QCoreApplication::translate("Configuration", "Неполная или неизвестная схема параметров.");
         return false;
     }
     QStringList allowed = fields;
     if (o.size() >= 12) allowed << "launchDelaySec" << "startExtra" << "stopExtra";
     if (o.size() == 14) allowed << "startChord" << "stopChord";
-    for (const auto &key : o.keys()) if (!allowed.contains(key)) { error = "Неизвестный параметр: " + key; return false; }
+    for (const auto &key : o.keys()) if (!allowed.contains(key)) { error = QCoreApplication::translate("Configuration", "Неизвестный параметр: %1").arg(key); return false; }
     auto readKeys = [&](const QJsonValue &value, QList<int> &keys, bool emptyAllowed) {
         if (!value.isArray() || value.toArray().size() > 3 || (!emptyAllowed && value.toArray().isEmpty())) return false;
         for (const auto &v : value.toArray()) {
@@ -170,7 +171,7 @@ bool decode(const QJsonObject &input, ClickConfig &out, QString &error) {
         if (!o[k].isDouble() || !std::isfinite(o[k].toDouble()) ||
             std::floor(o[k].toDouble()) != o[k].toDouble() || o[k].toDouble() < 0 ||
             o[k].toDouble() > 1000000000) {
-            error = "Параметр должен быть целым числом: " + k;
+            error = QCoreApplication::translate("Configuration", "Параметр должен быть целым числом: %1").arg(k);
             return false;
         }
     c.interval = o["intervalMs"].toInt();
@@ -185,14 +186,14 @@ bool decode(const QJsonObject &input, ClickConfig &out, QString &error) {
     if (o.size() >= 12) {
         const auto d = o["launchDelaySec"];
         if (!d.isDouble() || d.toDouble() != d.toInt() || d.toInt() < 1 || d.toInt() > 10) {
-            error = "Отсчёт должен быть от 1 до 10 секунд.";
+            error = QCoreApplication::translate("Configuration", "Отсчёт должен быть от 1 до 10 секунд.");
             return false;
         }
         c.launchDelay = d.toInt();
         for (bool stop : {false, true}) {
             const auto value = o[stop ? "stopExtra" : "startExtra"];
             if (!value.isArray() || value.toArray().size() > 7) {
-                error = "Некорректный список назначений.";
+                error = QCoreApplication::translate("Configuration", "Некорректный список назначений.");
                 return false;
             }
             auto &list = stop ? c.stopExtra : c.startExtra;
@@ -201,19 +202,19 @@ bool decode(const QJsonObject &input, ClickConfig &out, QString &error) {
                 if (!entry.isObject() || (b.size() != 2 && b.size() != 3) || !b["key"].isDouble() ||
                     !b["mods"].isDouble() || b["key"].toDouble() != b["key"].toInt() ||
                     b["mods"].toDouble() != b["mods"].toInt()) {
-                    error = "Некорректное назначение.";
+                    error = QCoreApplication::translate("Configuration", "Некорректное назначение.");
                     return false;
                 }
                 KeyBinding binding{b["key"].toInt(), b["mods"].toInt()};
                 if (b.size() == 3 && (o.size() != 14 || !readKeys(b["keys"], binding.keys, false))) {
-                    error = "Некорректный набор клавиш."; return false;
+                    error = QCoreApplication::translate("Configuration", "Некорректный набор клавиш."); return false;
                 }
                 list.append(binding);
             }
         }
     }
     if (o.size() == 14 && (!readKeys(o["startChord"], c.startChord, true) || !readKeys(o["stopChord"], c.stopChord, true))) {
-        error = "Некорректный набор клавиш."; return false;
+        error = QCoreApplication::translate("Configuration", "Некорректный набор клавиш."); return false;
     }
     error = validate(c);
     if (!error.isEmpty())

@@ -29,7 +29,7 @@ Item {
         width: parent.width - 96
         height: 2
         Accessible.role: Accessible.ProgressBar
-        Accessible.name: "Загрузка приложения"
+        Accessible.name: qsTr("Загрузка приложения")
         Accessible.description: boot.progress + "%"
         color: Theme.hairline
         Rectangle {

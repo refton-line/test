@@ -15,7 +15,8 @@
 #endif
 #include <windows.h>
 #endif
-StartupController::StartupController(QObject *p) : QObject(p) {}
+StartupController::StartupController(QObject *p)
+    : QObject(p), m_message(tr("Подготовка приложения")) {}
 StartupController::~StartupController() { m_task.waitForFinished(); }
 void StartupController::start() {
     if (m_running || m_done)
@@ -43,29 +44,29 @@ void StartupController::start() {
         };
         const QString dir = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
         if (dir.isEmpty() || !QDir().mkpath(dir)) {
-            report(0, "Нет доступа к папке настроек", false, true);
+            report(0, tr("Нет доступа к папке настроек"), false, true);
             return;
         }
-        report(20, "Папка настроек доступна");
+        report(20, tr("Папка настроек доступна"));
         const QString filePath = dir + "/workspace.json";
         if (!QFile::exists(filePath)) {
             QSaveFile out(filePath);
             const QByteArray defaults = "{\"schemaVersion\":1,\"profiles\":[]}";
             if (!out.open(QIODevice::WriteOnly) || out.write(defaults) != defaults.size() ||
                 !out.commit()) {
-                report(20, "Не удалось сохранить настройки", false, true);
+                report(20, tr("Не удалось сохранить настройки"), false, true);
                 return;
             }
         }
         QFile in(filePath);
         if (!in.open(QIODevice::ReadOnly) || in.size() > 1024 * 1024) {
-            report(20, "Не удалось прочитать настройки: файл недоступен или слишком велик", false,
+            report(20, tr("Не удалось прочитать настройки: файл недоступен или слишком велик"), false,
                    true);
             return;
         }
         const auto bytes = in.read(1024 * 1024 + 1);
         if (bytes.size() > 1024 * 1024 || !in.atEnd()) {
-            report(20, "Файл настроек слишком велик", false, true);
+            report(20, tr("Файл настроек слишком велик"), false, true);
             return;
         }
         QJsonParseError parseError;
@@ -74,34 +75,34 @@ void StartupController::start() {
             document.object().value("schemaVersion").toInt() != 1 ||
             !document.object().value("profiles").isArray()) {
             report(20,
-                   "Файл workspace.json повреждён или другой версии. Восстановите его из копии и "
-                   "нажмите «Повторить».",
+                   tr("Файл workspace.json повреждён или другой версии. Восстановите его из копии и "
+                      "нажмите «Повторить»."),
                    false, true);
             return;
         }
-        report(50, "Настройки проверены");
+        report(50, tr("Настройки проверены"));
         const QStringList icons = {"c-mark",   "keyboard", "folder", "activity",
-                                   "settings", "x",        "minus",  "cursor"};
+                                   "settings", "x",        "minus",  "cursor", "globe"};
         for (const auto &icon : icons) {
             QSvgRenderer renderer(":/qt/qml/CClicker/assets/" + icon + ".svg");
             if (!renderer.isValid()) {
-                report(50, "Не удалось загрузить SVG: " + icon, false, true);
+                report(50, tr("Не удалось загрузить SVG: %1").arg(icon), false, true);
                 return;
             }
         }
-        report(80, "Ресурсы интерфейса готовы");
+        report(80, tr("Ресурсы интерфейса готовы"));
 #ifdef Q_OS_WIN
         LARGE_INTEGER frequency;
         if (!QueryPerformanceFrequency(&frequency) || frequency.QuadPart <= 0) {
-            report(80, "Высокоточный счётчик Windows недоступен", false, true);
+            report(80, tr("Высокоточный счётчик Windows недоступен"), false, true);
             return;
         }
 #else
         if (!QElapsedTimer::isMonotonic()) {
-            report(80, "Монотонный счётчик недоступен", false, true);
+            report(80, tr("Монотонный счётчик недоступен"), false, true);
             return;
         }
 #endif
-        report(100, "Интерфейс готов", true);
+        report(100, tr("Интерфейс готов"), true);
     });
 }

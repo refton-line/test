@@ -1,6 +1,7 @@
 #include "CaptureHarness.h"
 #include "ClickController.h"
 #include "ConfigStore.h"
+#include "Language.h"
 #include "StartupController.h"
 #include <QFontDatabase>
 #include <QGuiApplication>
@@ -25,15 +26,21 @@ int main(int argc, char *argv[]) {
     app.setApplicationDisplayName("C clicker");
     app.setOrganizationName("ObsidianClick");
     app.setApplicationName("ObsidianClick");
-    app.setApplicationVersion("0.5.0-modes");
+    app.setApplicationVersion("0.6.0-languages");
     app.setWindowIcon(QIcon(":/qt/qml/CClicker/assets/app.ico"));
     QFontDatabase::addApplicationFont(":/qt/qml/CClicker/assets/fonts/Manrope.ttf");
     QFontDatabase::addApplicationFont(":/qt/qml/CClicker/assets/fonts/JetBrainsMono.ttf");
     QQuickStyle::setStyle("Basic");
+    // Install the translator before any controller builds its first strings.
+    LanguageController language;
     StartupController startup;
     ClickController clicks;
     ConfigStore configs(&clicks);
     QQmlApplicationEngine engine;
+    language.setEngine(&engine);
+    QObject::connect(&language, &LanguageController::languageChanged, &clicks, &ClickController::retranslate);
+    QObject::connect(&language, &LanguageController::languageChanged, &configs, &ConfigStore::refresh);
+    engine.rootContext()->setContextProperty("i18n", &language);
     engine.rootContext()->setContextProperty("startup", &startup);
     engine.rootContext()->setContextProperty("configs", &configs);
     engine.rootContext()->setContextProperty("clickEngine", &clicks);
@@ -53,7 +60,7 @@ int main(int argc, char *argv[]) {
     auto updateMask = [win] {
         if (QGuiApplication::platformName() == "offscreen")
             return;
-        if (win->property("expansion").toReal() >= 1) {
+        if (win->property("expansion").toReal() >= 1 && !win->property("exiting").toBool()) {
             // Clear the transient startup mask, otherwise fullscreen remains
             // restricted to the original window's rectangle.
             win->setMask(QRegion());
@@ -69,14 +76,16 @@ int main(int argc, char *argv[]) {
     maskTimer.setInterval(16);
     QObject::connect(&maskTimer, &QTimer::timeout, &app, [&] {
         updateMask();
-        if (win->property("expansion").toReal() >= 1)
+        if (win->property("expansion").toReal() >= 1 && !win->property("exiting").toBool())
             maskTimer.stop();
     });
+    // The closing fold shrinks the shell again: clip the window to it, as at startup.
+    QObject::connect(win, SIGNAL(exitingChanged()), &maskTimer, SLOT(start()));
     updateMask();
     maskTimer.start();
     QObject::connect(&app, &QCoreApplication::aboutToQuit, &clicks, &ClickController::stop);
     const int captureIndex = app.arguments().indexOf("--capture");
     if (captureIndex >= 0 && captureIndex + 1 < app.arguments().size())
-        runCaptureHarness(win, app.arguments()[captureIndex + 1], &clicks, &configs);
+        runCaptureHarness(win, app.arguments()[captureIndex + 1], &clicks, &configs, &language);
     return app.exec();
 }

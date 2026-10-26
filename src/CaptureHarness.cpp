@@ -1,6 +1,9 @@
 #include "CaptureHarness.h"
 #include "ClickController.h"
 #include "ConfigStore.h"
+#include "Language.h"
+#include <QRegularExpression>
+#include <QSettings>
 #include <QDebug>
 #include <functional>
 #include <memory>
@@ -29,6 +32,7 @@ void assertCleanShell(QQuickItem *item) {
         qFatal("Removed redundant button returned");
     const QString text = item->property("text").toString();
     if (text.contains("Beta", Qt::CaseInsensitive) || text.contains(QStringLiteral("Без конфигурации")) ||
+        text == QCoreApplication::translate("ConfigStore", "Без конфигурации") ||
         text.contains(QStringLiteral("  запуск     ")))
         qFatal("Removed shell clutter returned: %s", qPrintable(text));
     for (auto *child : item->childItems()) assertCleanShell(child);
@@ -43,6 +47,18 @@ void snapshot(QQuickWindow *win, const QString &path) {
     if (!win->grabWindow().save(path))
         qFatal("Capture failed");
 }
+// English UI must not leak untranslated Russian. Key caps and user data are Latin here.
+void assertNoCyrillic(QQuickItem *item, const char *where) {
+    // Language cards name each language in itself ("Русский") on purpose.
+    if (!item->isVisible() || item->objectName().startsWith("language_")) return;
+    static const QRegularExpression cyrillic(QStringLiteral("[\\x{0400}-\\x{04FF}]"));
+    for (const char *property : {"text", "placeholderText", "title"}) {
+        const QString text = item->property(property).toString();
+        if (text.contains(cyrillic))
+            qFatal("Untranslated text on %s: %s", where, qPrintable(text));
+    }
+    for (auto *child : item->childItems()) assertNoCyrillic(child, where);
+}
 void click(QQuickWindow *win, const QString &name) {
     auto *item = find(win->contentItem(), name);
     if (!item || !QMetaObject::invokeMethod(item, "click"))
@@ -50,7 +66,7 @@ void click(QQuickWindow *win, const QString &name) {
 }
 } // namespace
 void runCaptureHarness(QQuickWindow *win, const QString &output, ClickController *engine,
-                       ConfigStore *configs) {
+                       ConfigStore *configs, LanguageController *language) {
     QDir().mkpath(output);
     const int capturePace = QCoreApplication::arguments().contains("--capture-slow") ? 3 : 1;
     // A relative sequence keeps a costly first font/layout/grab from bunching later actions
@@ -119,7 +135,12 @@ void runCaptureHarness(QQuickWindow *win, const QString &output, ClickController
             if (!win->property("exiting").toBool() || engine->active())
                 qFatal("Close did not stop input immediately");
             shot("closing");
-            qInfo() << "NATIVE_WINDOW_UI_PASS (fullscreen, work-area maximize, normal/maximized restore, resize, close stop)";
+        });
+        at(4880, [=] {
+            const qreal fold = win->property("expansion").toReal();
+            if (fold >= 1 || fold <= 0) qFatal("Close did not fold the shell back");
+            shot("closing-fold");
+            qInfo() << "NATIVE_WINDOW_UI_PASS (fullscreen, work-area maximize, normal/maximized restore, resize, close stop, close fold)";
         });
         return;
     }
@@ -153,6 +174,57 @@ void runCaptureHarness(QQuickWindow *win, const QString &output, ClickController
             if (engine->clickMode() != 0 || engine->intervalMs() != 5)
                 qFatal("Leaving Blatant did not restore the 5 ms floor");
             qInfo() << "NATIVE_MODE_UI_PASS (legit preset, custom recipe, blatant floor, mode return)";
+            QCoreApplication::quit();
+        });
+        return;
+    }
+    if (QCoreApplication::arguments().contains("--capture-language-tests")) {
+        const auto sweep = [=](const char *where) { assertNoCyrillic(win->contentItem(), where); };
+        at(1700, [=] {
+            if (language->language() != "en" || engine->modeSummary() != "Legit · 9–13 CPS")
+                qFatal("Fresh install is not English");
+            sweep("clicker"); click(win, "nav1");
+        });
+        at(2100, [=] { sweep("log"); click(win, "nav2"); });
+        at(2500, [=] { sweep("controls"); click(win, "editStartBinding"); });
+        at(2900, [=] {
+            sweep("keyboard picker");
+            QMetaObject::invokeMethod(win->findChild<QObject *>("keyboardPicker"), "close");
+            click(win, "nav3");
+        });
+        at(3300, [=] { sweep("profiles"); click(win, "nav4"); });
+        at(3700, [=] {
+            sweep("language");
+            if (find(win->contentItem(), "nav4")->property("text").toString() != "Language")
+                qFatal("Language tab label missing");
+            shot("language-en");
+            click(win, "language_ru");
+        });
+        at(4100, [=] {
+            if (language->language() != "ru" || QSettings().value("ui/language").toString() != "ru")
+                qFatal("Switch to Russian failed");
+            if (find(win->contentItem(), "nav0")->property("text").toString() != QStringLiteral("Кликер") ||
+                !engine->modeSummary().startsWith(QStringLiteral("Легит")) ||
+                win->property("languagePhase").toReal() < 0.99)
+                qFatal("Russian UI not applied");
+            shot("language-ru");
+            click(win, "nav0");
+        });
+        at(4500, [=] {
+            if (find(win->contentItem(), "startButton")->property("text").toString() != QStringLiteral("Запустить"))
+                qFatal("Russian start button missing");
+            shot("clicker-ru");
+            click(win, "nav4");
+        });
+        at(4900, [=] { click(win, "language_en"); });
+        at(5300, [=] {
+            if (language->language() != "en" || engine->modeSummary() != "Legit · 9–13 CPS") qFatal("Switch back to English failed");
+            click(win, "nav0");
+        });
+        at(5700, [=] { click(win, "limitsButton"); });
+        at(6100, [=] {
+            sweep("limits");
+            qInfo() << "NATIVE_LANGUAGE_UI_PASS (English default, no Cyrillic on 5 pages and 2 dialogs, RU switch, persistence, back to EN)";
             QCoreApplication::quit();
         });
         return;
@@ -466,7 +538,7 @@ void runCaptureHarness(QQuickWindow *win, const QString &output, ClickController
         click(win, "mode0");
         if (engine->clickMode() != 0 || engine->intervalMs() < 5) qFatal("Return to Legit failed");
         auto *start = find(win->contentItem(), "startButton");
-        if (!start || start->property("text").toString() != QStringLiteral("Запустить") ||
+        if (!start || start->property("text").toString() != QCoreApplication::translate("SettingsPanel", "Запустить") ||
             start->property("hint").isValid() || !start->property("tip").toString().isEmpty())
             qFatal("Activation hint returned to the run button");
         qInfo() << "NATIVE_CLEAN_UI_PASS (no Beta/profile/footer clutter, no activation badge or tooltip)";
@@ -497,7 +569,7 @@ void runCaptureHarness(QQuickWindow *win, const QString &output, ClickController
         auto *field = find(win->contentItem(), "profileNameField");
         if (!field)
             qFatal("Missing name field");
-        field->setProperty("text", QString::fromUtf8("Тест · 200 / с"));
+        field->setProperty("text", QStringLiteral("Test · 200 / s"));
         click(win, "confirmSaveConfig");
         if (configs->profiles().isEmpty())
             qFatal("Profile not saved");
@@ -565,7 +637,7 @@ void runCaptureHarness(QQuickWindow *win, const QString &output, ClickController
         shot("dismissible-error"); click(win,"dismissError");
     });
     at(11100, [=] {
-        if (!engine->error().isEmpty() || find(win->contentItem(),"generalError")->isVisible()) qFatal("Error dismissal failed");
+        if (!engine->error().isEmpty() || find(win->contentItem(),"generalError")->property("shown").toBool()) qFatal("Error dismissal failed");
         engine->resetBindings();
         shot("error-dismissed");
         qInfo() << "NATIVE_ERROR_LIFECYCLE_PASS (local conflict, cancel clears, general error closes)";

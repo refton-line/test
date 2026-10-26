@@ -84,14 +84,14 @@ bool ClickController::applyChordSlot(bool stop, int index, const QVariantList &v
     for (const auto &v : values) {
         bool ok = false; const int key = v.toInt(&ok);
         if (!ok || v.toDouble() != key || !Configuration::validChordKey(key) || keys.contains(key)) {
-            return reject("Некорректный набор клавиш.");
+            return reject(tr("Некорректный набор клавиш."));
         }
         keys.append(key);
     }
-    if (keys.isEmpty() || keys.size() > 3) { return reject("Выберите от одной до трёх клавиш."); }
+    if (keys.isEmpty() || keys.size() > 3) { return reject(tr("Выберите от одной до трёх клавиш.")); }
     auto c = m_config;
     auto list = Configuration::bindings(c, stop);
-    if (index < 0 || index > list.size() || (index == list.size() && list.size() >= MaxBindings)) return reject("Список назначений изменился. Откройте редактор заново.");
+    if (index < 0 || index > list.size() || (index == list.size() && list.size() >= MaxBindings)) return reject(tr("Список назначений изменился. Откройте редактор заново."));
     KeyBinding binding{keys.last(), 0, keys};
     if (index == list.size()) list.append(binding); else list[index] = binding;
     const auto first = list.takeFirst();
@@ -147,7 +147,7 @@ void ClickController::beginBindingDraft(const QVariantList &values, bool combina
         if (Configuration::validChordKey(key) && !m_draftKeys.contains(key) && m_draftKeys.size() < 3) m_draftKeys.append(key);
     }
     if (!combination && m_draftKeys.size() > 1) m_draftKeys = {m_draftKeys.last()};
-    if (values.size() > 3) m_draftError = "Прежнее сочетание длиннее трёх клавиш. Проверьте новый набор.";
+    if (values.size() > 3) m_draftError = tr("Прежнее сочетание длиннее трёх клавиш. Проверьте новый набор.");
     emit keyboardStateChanged();
 }
 void ClickController::setCaptureCombination(bool value) {
@@ -161,7 +161,7 @@ void ClickController::selectDraftKey(int key) {
     if (!m_captureCombination) m_draftKeys = {key};
     else if (m_draftKeys.contains(key)) m_draftKeys.removeAll(key);
     else if (m_draftKeys.size() < 3) m_draftKeys.append(key);
-    else m_draftError = "Не больше трёх клавиш. Нажмите выбранную клавишу, чтобы убрать её.";
+    else m_draftError = tr("Не больше трёх клавиш. Нажмите выбранную клавишу, чтобы убрать её.");
     emit keyboardStateChanged();
 }
 void ClickController::evaluateBindings(bool trigger) {

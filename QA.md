@@ -1,4 +1,12 @@
-# C clicker 0.5.0 Modes: QA
+# C clicker 0.6.0 Languages: QA
+
+## Current 0.6.0 languages and animations
+725 controller assertions (711 retained + 14): English default and locale, translated mode summary / run state / validation error / QML string, unknown language rejected, switch to Russian stored and reflected in derived text, persistence across controller restarts, back to English, missing catalogue falls back to Russian, invalid stored value falls back to English. New CTest `translations_complete` re-runs lupdate over all sources and fails on new, stale, unfinished, empty, placeholder-mismatched or Cyrillic English entries (232 messages pass).
+
+Native captures (Linux offscreen, Qt 6.8.3), all passing: general, modes, new `--capture-language-tests` (`NATIVE_LANGUAGE_UI_PASS`: English default; no Cyrillic in visible text on Clicker, Log, Controls, keyboard picker, Profiles, Language and the limits dialog, except the native "Русский" card; switch to Russian updates nav, start button and C++ mode summary and persists; switch back), window (`NATIVE_WINDOW_UI_PASS` now also requires the close fold: expansion strictly between 0 and 1 mid-close), keyboard, error, adaptive at 150 %. Error dismissal is asserted on the banner's `shown` state because it now fades out. The capture profile name is now Latin ("Test · 200 / s") so English previews contain no harness-entered Cyrillic.
+
+Not verified here: the window mask during the close fold and translucency on real Windows; the Windows EXE is cross-built, not run.
+
 
 ## Current 0.5.0 click modes
 711 controller/config/timing assertions pass (642 retained, one updated: profile envelope version 3 → 4, because v4 adds the pattern block). New checks: Legit default and CPS range setters/validation; Blatant 1 ms floor and snap back to 5 ms on leaving; Custom jitter/delivery/drift bounds; pattern JSON round trip for all modes, malformed pattern rejection, 0.4.7 JSON loading as Custom with the exact fixed-grid SendInput plan; v4 profile save/apply/reload, v3 import, fractional envelope version rejected. Generator statistics over 20 000 steps: Legit mean CPS inside the range, gap CV 0.06–0.35, >95 % distinct gaps, hold always < gap and 30–55 % of the cycle, tempo drift between 50-click windows, 0.4–3 % micro-pauses, 30 CPS edge case; Blatant exact gaps; Custom ±20 % bounds and unbiased mean, ±12 % wave, extreme 5 ms / 50 % jitter never yields hold ≥ gap; seed determinism.

@@ -28,6 +28,7 @@ ApplicationWindow {
     property bool allowClose: false
     property int selectedPage: 0
     property real pagePhase: 1
+    property real languagePhase: 1
     property int displayedPage: 0
     property int pageDirection: 1
     property bool pageLeaving: false
@@ -69,6 +70,11 @@ ApplicationWindow {
             exitAnimation.start();
         }
     }
+    function switchLanguage(code) {
+        if (code === i18n.language || languageSwitch.running) return;
+        languageSwitch.code = code;
+        languageSwitch.start();
+    }
     function changePage() {
         if (pageTransition.running || selectedPage === displayedPage) return;
         pageDirection = selectedPage > displayedPage ? 1 : -1;
@@ -90,11 +96,21 @@ ApplicationWindow {
         ScriptAction { script: { win.displayedPage = win.selectedPage; win.pageLeaving = false; } }
         NumberAnimation { target: win; property: "pagePhase"; to: 1; duration: Theme.pageEnter; easing.type: Easing.OutCubic }
     }
-    NumberAnimation {
+    // Fade the whole interface out, swap the catalogue while invisible, fade back in.
+    SequentialAnimation {
+        id: languageSwitch
+        property string code
+        NumberAnimation { target: win; property: "languagePhase"; to: 0; duration: Theme.languageOut; easing.type: Easing.InCubic }
+        ScriptAction { script: i18n.setLanguage(languageSwitch.code) }
+        NumberAnimation { target: win; property: "languagePhase"; to: 1; duration: Theme.languageIn; easing.type: Easing.OutCubic }
+    }
+    // Closing mirrors the opening: the shell folds back into the startup card,
+    // the C returns to the centre, then everything fades.
+    SequentialAnimation {
         id: exitAnimation
-        target: win; property: "dismissal"; to: 0
-        duration: Theme.exitDuration; easing.type: Easing.InCubic
         onFinished: { win.allowClose = true; win.close(); }
+        NumberAnimation { target: win; property: "expansion"; to: 0; duration: Theme.exitMorph; easing.type: Easing.InOutCubic }
+        NumberAnimation { target: win; property: "dismissal"; to: 0; duration: Theme.exitDuration; easing.type: Easing.InCubic }
     }
     KeyboardPicker { id: keyPicker; engine: clickEngine; uiScale: win.uiScale }
 
@@ -111,9 +127,10 @@ ApplicationWindow {
             anchors.centerIn: parent
             width: win.panelWidth
             height: win.panelHeight
-            radius: win.fullScreen || win.maximized ? 0 : Theme.radiusLarge
+            readonly property bool edgeToEdge: (win.fullScreen || win.maximized) && !win.exiting
+            radius: edgeToEdge ? 0 : Theme.radiusLarge
             color: Theme.workspace
-            border.color: win.fullScreen || win.maximized ? Theme.clear : Theme.hairline
+            border.color: edgeToEdge ? Theme.clear : Theme.hairline
             // Rectangular clipping only. Backgrounds respect the outer inset;
             // no glowing Canvas textures can bleed outside the rounded shell.
             clip: true
@@ -121,7 +138,7 @@ ApplicationWindow {
                 anchors.fill: parent
                 anchors.margins: 1
                 visible: win.entrance > 0
-                opacity: win.entrance
+                opacity: win.entrance * win.languagePhase
                 enabled: win.expansion === 1
                 Rectangle {
                     x: 0; y: 0
@@ -144,16 +161,16 @@ ApplicationWindow {
                         anchors.right: parent.right; anchors.rightMargin: 8
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: 0
-                        ActionButton { text: ""; glyph: "minus"; quiet: true; width: 44; Accessible.name: "Свернуть"; onClicked: win.showMinimized() }
-                        ActionButton { objectName: "maximizeButton"; text: ""; glyph: win.maximized ? "restore" : "maximize"; quiet: true; width: 44; Accessible.name: win.maximized ? "Восстановить окно" : "Развернуть окно"; enabled: !win.fullScreen; onClicked: win.toggleMaximized() }
-                        ActionButton { objectName: "fullscreenButton"; text: ""; glyph: win.fullScreen ? "minimize" : "fullscreen"; quiet: true; width: 44; Accessible.name: win.fullScreen ? "Выйти из полного экрана" : "Полный экран"; onClicked: win.toggleFullscreen() }
-                        ActionButton { objectName: "closeButton"; text: ""; glyph: "x"; quiet: true; width: 44; Accessible.name: "Закрыть"; onClicked: win.requestClose() }
+                        ActionButton { text: ""; glyph: "minus"; quiet: true; width: 44; Accessible.name: qsTr("Свернуть"); onClicked: win.showMinimized() }
+                        ActionButton { objectName: "maximizeButton"; text: ""; glyph: win.maximized ? "restore" : "maximize"; quiet: true; width: 44; Accessible.name: win.maximized ? qsTr("Восстановить окно") : qsTr("Развернуть окно"); enabled: !win.fullScreen; onClicked: win.toggleMaximized() }
+                        ActionButton { objectName: "fullscreenButton"; text: ""; glyph: win.fullScreen ? "minimize" : "fullscreen"; quiet: true; width: 44; Accessible.name: win.fullScreen ? qsTr("Выйти из полного экрана") : qsTr("Полный экран"); onClicked: win.toggleFullscreen() }
+                        ActionButton { objectName: "closeButton"; text: ""; glyph: "x"; quiet: true; width: 44; Accessible.name: qsTr("Закрыть"); onClicked: win.requestClose() }
                     }
                 }
                 Column {
                     x: 12; y: 100; spacing: 8
                     Repeater {
-                        model: ["Кликер", "Журнал", "Управление", "Конфигурации"]
+                        model: [qsTr("Кликер"), qsTr("Журнал"), qsTr("Управление"), qsTr("Конфигурации"), qsTr("Язык")]
                         ActionButton {
                             required property int index
                             required property string modelData
@@ -161,7 +178,7 @@ ApplicationWindow {
                             width: Theme.railWidth - 24; height: 48
                             navigation: true; quiet: true
                             text: modelData; textSize: 13
-                            glyph: ["mouse", "activity", "keyboard", "folder"][index]
+                            glyph: ["mouse", "activity", "keyboard", "folder", "globe"][index]
                             checked: win.selectedPage === index
                             onClicked: win.selectedPage = index
                         }
@@ -169,7 +186,7 @@ ApplicationWindow {
                 }
                 Column {
                     x: 20; anchors.bottom: parent.bottom; anchors.bottomMargin: 26; spacing: 8
-                    ActionButton { objectName: "openConfigFolder"; text: "Файлы"; glyph: "folder"; quiet: true; Accessible.name: "Открыть папку конфигураций"; onClicked: configs.openFolder() }
+                    ActionButton { objectName: "openConfigFolder"; text: qsTr("Файлы"); glyph: "folder"; quiet: true; Accessible.name: qsTr("Открыть папку конфигураций"); onClicked: configs.openFolder() }
                 }
                 Item {
                     id: workArea
@@ -202,28 +219,37 @@ ApplicationWindow {
                         width: parent.width; height: parent.height
                         opacity: win.pagePhase
                         active: win.displayedPage !== 0
-                        sourceComponent: win.displayedPage === 1 ? sessionPage : win.displayedPage === 2 ? preferencesPage : configPage
+                        sourceComponent: [null, sessionPage, preferencesPage, configPage, languagePage][win.displayedPage]
                     }
                     Component { id: sessionPage; SessionPanel { engine: clickEngine} }
                     Component { id: preferencesPage; PreferencesPanel { engine: clickEngine; keyboard: keyPicker } }
                     Component { id: configPage; ConfigPanel { engine: clickEngine; store: configs} }
+                    Component { id: languagePage; LanguagePanel { language: i18n; onPick: code => win.switchLanguage(code) } }
                 }
                 Rectangle {
                     x: Theme.railWidth + Theme.gutter
                     objectName: "generalError"
+                    id: errorBanner
+                    // Keep the last message while fading out after the error clears.
+                    readonly property bool shown: clickEngine.error !== "" && !keyPicker.visible
+                    property string message
+                    Connections { target: clickEngine; function onChanged() { if (clickEngine.error !== "") errorBanner.message = clickEngine.error } }
                     anchors.bottom: parent.bottom
-                    anchors.bottomMargin: 32
+                    anchors.bottomMargin: shown ? 32 : 20
                     width: parent.width - x - Theme.gutter
                     height: Math.max(52, errorText.implicitHeight + 24)
                     color: Theme.surface; radius: Theme.radius
                     border.color: Theme.danger
-                    visible: clickEngine.error !== "" && !keyPicker.visible
+                    opacity: shown ? 1 : 0
+                    visible: opacity > 0
+                    Behavior on opacity { NumberAnimation { duration: errorBanner.shown ? Theme.dialogEnter : Theme.dialogExit; easing.type: Easing.OutCubic } }
+                    Behavior on anchors.bottomMargin { NumberAnimation { duration: Theme.normal; easing.type: Easing.OutCubic } }
                     Label {
                         id: errorText
                         anchors.left: parent.left; anchors.right: dismissErrorButton.left
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.leftMargin: 12; anchors.rightMargin: 8
-                        text: clickEngine.error; font.pixelSize: 13
+                        text: errorBanner.message; font.pixelSize: 13
                         color: Theme.danger; wrapMode: Text.WordWrap
                     }
                     ActionButton {
@@ -233,7 +259,7 @@ ApplicationWindow {
                         anchors.rightMargin: 4
                         width: 44; height: 44
                         glyph: "x"; quiet: true
-                        Accessible.name: "Закрыть сообщение об ошибке"
+                        Accessible.name: qsTr("Закрыть сообщение об ошибке")
                         onClicked: clickEngine.dismissError()
                     }
                 }
@@ -242,22 +268,22 @@ ApplicationWindow {
                 anchors.fill: parent
                 progress: startup.progress; ready: startup.done
                 opacity: Math.max(0, 1 - win.expansion / 0.25)
-                visible: opacity > 0 && startup.error === ""
+                visible: opacity > 0 && startup.error === "" && !win.exiting
             }
             Rectangle {
                 anchors.fill: parent; anchors.margins: 24
                 visible: startup.error !== ""; color: Theme.workspace
                 Column {
                     anchors.centerIn: parent; width: parent.width; spacing: 16
-                    Label { text: "Не удалось открыть приложение"; font.pixelSize: 18; font.weight: Font.DemiBold; width: parent.width; wrapMode: Text.WordWrap }
+                    Label { text: qsTr("Не удалось открыть приложение"); font.pixelSize: 18; font.weight: Font.DemiBold; width: parent.width; wrapMode: Text.WordWrap }
                     Label { text: startup.error; font.pixelSize: 14; color: Theme.muted; width: parent.width; wrapMode: Text.WordWrap }
-                    ActionButton { text: "Повторить"; primary: true; onClicked: startup.start() }
+                    ActionButton { text: qsTr("Повторить"); primary: true; onClicked: startup.start() }
                 }
             }
             ActionButton {
-                visible: win.expansion < 0.45
+                visible: win.expansion < 0.45 && !win.exiting
                 anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 6
-                text: ""; glyph: "x"; quiet: true; width: 44; Accessible.name: "Закрыть"
+                text: ""; glyph: "x"; quiet: true; width: 44; Accessible.name: qsTr("Закрыть")
                 onClicked: win.requestClose()
             }
         }

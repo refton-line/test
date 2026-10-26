@@ -37,8 +37,9 @@ Button {
                     : control.outlined ? Theme.controlBorder : Theme.hairline
         Behavior on color { enabled: !control.primary; ColorAnimation { duration: Theme.fast } }
         Rectangle {
-            visible: control.checked && control.navigation
-            width: 3; height: 18; radius: 1
+            visible: control.navigation && height > 0
+            width: 3; height: control.checked ? 18 : 0; radius: 1
+            Behavior on height { NumberAnimation { duration: Theme.normal; easing.type: Easing.OutCubic } }
             x: 0; y: (parent.height - height) / 2
             color: control.lightFace ? Theme.accentInk : Theme.brand
         }

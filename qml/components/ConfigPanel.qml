@@ -12,7 +12,7 @@ Item {
     property string selectedName: ""
     property bool selectedValid: false
     Label {
-        text: "Конфигурации"
+        text: qsTr("Конфигурации")
         font.pixelSize: 24
         font.weight: Font.DemiBold
     }
@@ -21,13 +21,13 @@ Item {
         spacing: 8
         ActionButton {
             objectName: "importConfig"
-            text: "Импорт"
+            text: qsTr("Импорт")
             glyph: "download"
             onClicked: importDialog.open()
         }
         ActionButton {
             objectName: "saveConfig"
-            text: "Сохранить как"
+            text: qsTr("Сохранить как")
             glyph: "plus"
             primary: true
             onClicked: {
@@ -47,7 +47,7 @@ Item {
         color: Theme.ink
         font.family: Theme.sans
         font.pixelSize: 14
-        placeholderText: "Найти конфигурацию"
+        placeholderText: qsTr("Найти конфигурацию")
         placeholderTextColor: Theme.muted
         selectionColor: Theme.accent
         selectedTextColor: Theme.accentInk
@@ -103,10 +103,13 @@ Item {
                 color: profile.modelData.id === panel.selectedId ? Theme.surfaceRaised : profile.hovered ? Theme.surface : Theme.workspace
                 border.width: profile.visualFocus ? 2 : 0
                 border.color: profile.visualFocus ? Theme.focus : Theme.clear
+                Behavior on color { ColorAnimation { duration: Theme.fast } }
                 Rectangle {
-                    visible: profile.modelData.id === panel.selectedId
                     x: 0; anchors.verticalCenter: parent.verticalCenter
-                    width: 3; height: 24; radius: 1; color: Theme.brand
+                    width: 3; radius: 1; color: Theme.brand
+                    height: profile.modelData.id === panel.selectedId ? 24 : 0
+                    visible: height > 0
+                    Behavior on height { NumberAnimation { duration: Theme.normal; easing.type: Easing.OutCubic } }
                 }
             }
             contentItem: Item {
@@ -141,7 +144,7 @@ Item {
                     anchors.right: parent.right
                     anchors.rightMargin: 16
                     anchors.verticalCenter: parent.verticalCenter
-                    text: !profile.modelData.valid ? "Ошибка JSON" : profile.modelData.active ? "Применён" : ""
+                    text: !profile.modelData.valid ? qsTr("Ошибка JSON") : profile.modelData.active ? qsTr("Применён") : ""
                     font.pixelSize: 12
                     color: Theme.muted
                 }
@@ -162,12 +165,12 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
         }
         Label {
-            text: panel.store.searchQuery !== "" ? "Ничего не найдено" : "Профилей пока нет"
+            text: panel.store.searchQuery !== "" ? qsTr("Ничего не найдено") : qsTr("Профилей пока нет")
             font.pixelSize: 16; font.weight: Font.DemiBold
             anchors.horizontalCenter: parent.horizontalCenter
         }
         Label {
-            text: panel.store.searchQuery !== "" ? "Попробуйте другое название." : "Сохраните текущие параметры или импортируйте JSON."
+            text: panel.store.searchQuery !== "" ? qsTr("Попробуйте другое название.") : qsTr("Сохраните текущие параметры или импортируйте JSON.")
             font.pixelSize: 14; color: Theme.muted
             anchors.horizontalCenter: parent.horizontalCenter
         }
@@ -183,7 +186,7 @@ Item {
         spacing: 8
         ActionButton {
             objectName: "applyConfig"
-            text: "Применить"
+            text: qsTr("Применить")
             glyph: "check"
             outlined: true
             enabled: panel.selectedId !== "" && panel.selectedValid && !panel.engine.active
@@ -191,14 +194,14 @@ Item {
         }
         ActionButton {
             objectName: "exportConfig"
-            text: "Экспорт"
+            text: qsTr("Экспорт")
             glyph: "upload"
             enabled: panel.selectedId !== "" && panel.selectedValid
             onClicked: exportDialog.open()
         }
         ActionButton {
             objectName: "renameConfig"
-            text: "Название"
+            text: qsTr("Название")
             glyph: "edit"
             enabled: panel.selectedId !== "" && panel.selectedValid
             onClicked: {
@@ -209,14 +212,14 @@ Item {
         }
         ActionButton {
             objectName: "duplicateConfig"
-            text: "Копия"
+            text: qsTr("Копия")
             glyph: "copy"
             enabled: panel.selectedId !== "" && panel.selectedValid
             onClicked: panel.store.duplicate(panel.selectedId)
         }
         ActionButton {
             objectName: "deleteConfig"
-            text: "Удалить"
+            text: qsTr("Удалить")
             glyph: "trash"
             enabled: panel.selectedId !== ""
             onClicked: deleteDialog.open()
@@ -233,21 +236,21 @@ Item {
     }
     FileDialog {
         id: importDialog
-        title: "Импорт конфигурации"
-        nameFilters: ["Конфигурация JSON (*.json)"]
+        title: qsTr("Импорт конфигурации")
+        nameFilters: [qsTr("Конфигурация JSON (*.json)")]
         onAccepted: panel.store.importFile(selectedFile)
     }
     FileDialog {
         id: exportDialog
-        title: "Экспорт конфигурации"
+        title: qsTr("Экспорт конфигурации")
         fileMode: FileDialog.SaveFile
         defaultSuffix: "json"
-        nameFilters: ["Конфигурация JSON (*.json)"]
+        nameFilters: [qsTr("Конфигурация JSON (*.json)")]
         onAccepted: panel.store.exportFile(panel.selectedId, selectedFile)
     }
     Popup {
-        enter: Transition { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.dialogEnter; easing.type: Easing.OutCubic } }
-        exit: Transition { NumberAnimation { property: "opacity"; to: 0; duration: Theme.dialogExit; easing.type: Easing.InCubic } }
+        enter: Transition { ParallelAnimation { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.dialogEnter; easing.type: Easing.OutCubic } NumberAnimation { property: "scale"; from: 0.96; to: 1; duration: Theme.dialogEnter; easing.type: Easing.OutCubic } } }
+        exit: Transition { ParallelAnimation { NumberAnimation { property: "opacity"; to: 0; duration: Theme.dialogExit; easing.type: Easing.InCubic } NumberAnimation { property: "scale"; to: 0.98; duration: Theme.dialogExit; easing.type: Easing.InCubic } } }
         id: nameDialog
         objectName: "configNameDialog"
         parent: Overlay.overlay
@@ -268,18 +271,18 @@ Item {
             width: parent.width
             spacing: 24
             Label {
-                text: nameDialog.renaming ? "Название конфигурации" : "Сохранить конфигурацию"
+                text: nameDialog.renaming ? qsTr("Название конфигурации") : qsTr("Сохранить конфигурацию")
                 font.pixelSize: 22
                 font.weight: Font.DemiBold
             }
             TextField {
                 id: profileName
                 objectName: "profileNameField"
-                Accessible.name: "Название конфигурации"
+                Accessible.name: qsTr("Название конфигурации")
                 width: parent.width
                 height: 48
                 maximumLength: 64
-                placeholderText: "Например, рабочий профиль"
+                placeholderText: qsTr("Например, рабочий профиль")
                 placeholderTextColor: Theme.muted
                 font.family: Theme.sans
                 font.pixelSize: 15
@@ -296,12 +299,12 @@ Item {
                 anchors.right: parent.right
                 spacing: 8
                 ActionButton {
-                    text: "Отмена"
+                    text: qsTr("Отмена")
                     onClicked: nameDialog.close()
                 }
                 ActionButton {
                     objectName: "confirmSaveConfig"
-                    text: "Сохранить"
+                    text: qsTr("Сохранить")
                     primary: true
                     enabled: profileName.text.trim().length > 0
                     onClicked: {
@@ -314,8 +317,8 @@ Item {
         }
     }
     Popup {
-        enter: Transition { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.dialogEnter; easing.type: Easing.OutCubic } }
-        exit: Transition { NumberAnimation { property: "opacity"; to: 0; duration: Theme.dialogExit; easing.type: Easing.InCubic } }
+        enter: Transition { ParallelAnimation { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.dialogEnter; easing.type: Easing.OutCubic } NumberAnimation { property: "scale"; from: 0.96; to: 1; duration: Theme.dialogEnter; easing.type: Easing.OutCubic } } }
+        exit: Transition { ParallelAnimation { NumberAnimation { property: "opacity"; to: 0; duration: Theme.dialogExit; easing.type: Easing.InCubic } NumberAnimation { property: "scale"; to: 0.98; duration: Theme.dialogExit; easing.type: Easing.InCubic } } }
         id: deleteDialog
         objectName: "deleteConfigDialog"
         parent: Overlay.overlay
@@ -334,7 +337,7 @@ Item {
             width: parent.width
             spacing: 24
             Label {
-                text: "Удалить JSON-файл?"
+                text: qsTr("Удалить JSON-файл?")
                 font.pixelSize: 22
                 font.weight: Font.DemiBold
             }
@@ -349,12 +352,12 @@ Item {
                 anchors.right: parent.right
                 spacing: 8
                 ActionButton {
-                    text: "Отмена"
+                    text: qsTr("Отмена")
                     onClicked: deleteDialog.close()
                 }
                 ActionButton {
                     objectName: "confirmDeleteConfig"
-                    text: "Удалить"
+                    text: qsTr("Удалить")
                     glyph: "trash"
                     onClicked: {
                         if (panel.store.remove(panel.selectedId)) {

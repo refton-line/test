@@ -21,7 +21,7 @@ class StartupController final : public QObject {
   private:
     QFuture<void> m_task;
     int m_progress = 0;
-    QString m_message = QStringLiteral("Подготовка приложения");
+    QString m_message;
     QString m_error;
     bool m_done = false, m_running = false;
 };

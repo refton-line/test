@@ -23,7 +23,7 @@ ClickController::ClickController(QObject *parent) : QObject(parent) {
         if (Configuration::decode(s.value("click/config").toJsonObject(), loaded, error))
             m_config = loaded;
         else
-            m_error = "Сохранённые параметры отклонены: " + error;
+            m_error = tr("Сохранённые параметры отклонены: %1").arg(error);
     } else {
         // Pre-JSON settings were the fixed-interval engine; keep it for those users.
         if (s.contains("click/interval"))
@@ -39,7 +39,7 @@ ClickController::ClickController(QObject *parent) : QObject(parent) {
     m_stopEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
     m_available = m_stopEvent && registerBindings(m_config);
     if (!m_available)
-        m_error = "Не удалось подключить ввод клавиатуры.";
+        m_error = tr("Не удалось подключить ввод клавиатуры.");
     qGuiApp->installNativeEventFilter(this);
 #endif
     m_countdownTimer.setInterval(1000);
@@ -53,7 +53,7 @@ ClickController::ClickController(QObject *parent) : QObject(parent) {
     });
     m_poll.setInterval(100);
     connect(&m_poll, &QTimer::timeout, this, &ClickController::sample);
-    record("Приложение открыто");
+    record(tr("Приложение открыто"));
 }
 ClickController::~ClickController() {
     qGuiApp->removeEventFilter(this);
@@ -72,7 +72,7 @@ void ClickController::persist() {
 }
 bool ClickController::applyConfig(const ClickConfig &c) {
     if (m_active) {
-        m_error = "Остановите клики перед изменением параметров.";
+        m_error = tr("Остановите клики перед изменением параметров.");
         emit changed();
         return false;
     }
@@ -93,7 +93,7 @@ bool ClickController::applyConfig(const ClickConfig &c) {
         if (!m_stopEvent || !registerBindings(c)) {
             unregisterBindings();
             m_available = !m_editing && m_stopEvent && registerBindings(m_config);
-            m_error = "Не удалось подключить ввод клавиатуры. Настройки не изменены.";
+            m_error = tr("Не удалось подключить ввод клавиатуры. Настройки не изменены.");
             emit changed();
             return false;
         }
@@ -246,21 +246,21 @@ void ClickController::start() {
     m_countdown = m_config.launchDelay;
     m_delivery.meanNs = -1;
     m_delivery.maxJitterNs = -1;
-    m_state = "Подготовка";
+    m_runState = Preparing;
     m_cancel = false;
 #ifdef Q_OS_WIN
     ResetEvent(m_stopEvent);
 #endif
-    record("Подготовка к запуску");
+    record(tr("Подготовка к запуску"));
     m_countdownTimer.start();
     emit changed();
 }
 void ClickController::launch() {
     if (!m_active)
         return;
-    m_state = "Работает";
+    m_runState = Running;
     m_poll.start();
-    record("Запуск: " + ClickPattern::describe(m_config));
+    record(tr("Запуск: %1").arg(ClickPattern::describe(m_config)));
     m_task = QtConcurrent::run([this] { runWorker(); });
 }
 void ClickController::stop() {
@@ -274,26 +274,38 @@ void ClickController::stop() {
 #endif
     if (m_countdown > 0) {
         m_countdown = 0;
-        complete("Запуск отменён");
+        complete(tr("Запуск отменён"), true);
         return;
     }
-    m_state = "Остановка";
+    m_runState = Stopping;
     emit changed();
 }
-void ClickController::complete(const QString &reason) {
+void ClickController::complete(const QString &reason, bool cancelled) {
     m_poll.stop();
     sample();
     m_active = false;
-    m_state = "Готов";
+    m_runState = Ready;
     if (!reason.isEmpty()) {
-        if (reason != "Запуск отменён")
+        if (!cancelled)
             m_error = reason;
         record(reason);
     }
-    record("Отправлено пар: " + QString::number(clicks()) +
-           " · Пропущено слотов: " + QString::number(skipped()));
+    record(tr("Отправлено пар: %1 · Пропущено слотов: %2").arg(clicks()).arg(skipped()));
     emit changed();
 }
+QString ClickController::state() const {
+    switch (m_runState) {
+    case Preparing:
+        return tr("Подготовка");
+    case Running:
+        return tr("Работает");
+    case Stopping:
+        return tr("Остановка");
+    default:
+        return tr("Готов");
+    }
+}
+void ClickController::retranslate() { emit changed(); }
 void ClickController::clearLog() {
     m_entries.clear();
     emit changed();

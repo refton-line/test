@@ -1,4 +1,5 @@
 #include "ClickPattern.h"
+#include <QCoreApplication>
 #include <cmath>
 namespace ClickPattern {
 namespace {
@@ -104,26 +105,32 @@ double expectedCps(const ClickConfig &c) {
 QString modeName(int mode) {
     switch (mode) {
     case LegitMode:
-        return "Легит";
+        return QCoreApplication::translate("ClickPattern", "Легит");
     case BlatantMode:
-        return "Блатант";
+        return QCoreApplication::translate("ClickPattern", "Блатант");
     default:
-        return "Свой";
+        return QCoreApplication::translate("ClickPattern", "Свой");
     }
 }
 QString describe(const ClickConfig &c) {
-    if (c.mode == LegitMode)
-        return modeName(c.mode) + " · " +
-               (c.cpsMin == c.cpsMax ? QString::number(c.cpsMin)
-                                     : QString::number(c.cpsMin) + "–" + QString::number(c.cpsMax)) +
-               " КПС";
-    QString text = modeName(c.mode) + " · " + QString::number(c.interval) + " мс";
+    if (c.mode == LegitMode) {
+        const QString range = c.cpsMin == c.cpsMax
+                                  ? QString::number(c.cpsMin)
+                                  : QString::number(c.cpsMin) + "–" + QString::number(c.cpsMax);
+        //: Mode summary, e.g. "Legit · 9–13 CPS"
+        return QCoreApplication::translate("ClickPattern", "%1 · %2 КПС").arg(modeName(c.mode), range);
+    }
+    //: Mode summary, e.g. "Blatant · 5 ms"
+    QString text = QCoreApplication::translate("ClickPattern", "%1 · %2 мс")
+                       .arg(modeName(c.mode), QString::number(c.interval));
     if (c.mode == CustomMode) {
         if (c.jitter)
             text += " ±" + QString::number(c.jitter) + " %";
         if (c.drift)
-            text += " · волна";
-        text += c.delivery == MessageDelivery ? " · сообщения" : " · эмуляция";
+            text += QCoreApplication::translate("ClickPattern", " · волна");
+        text += c.delivery == MessageDelivery
+                    ? QCoreApplication::translate("ClickPattern", " · сообщения")
+                    : QCoreApplication::translate("ClickPattern", " · эмуляция");
     }
     return text;
 }

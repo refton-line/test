@@ -1,4 +1,8 @@
-# Incremental security review · 0.5.0 Modes
+# Incremental security review · 0.6.0 Languages
+
+## Current 0.6.0 languages and animations
+Translations are compiled into the executable's resources; no catalogue is loaded from disk or network at runtime. The only new persisted value is `ui/language`, validated against `en`/`ru` (anything else falls back to English). Input handling, the click worker and the profile schema are unchanged; the close animation runs after input has already been stopped, as before.
+
 
 Manual source review and automated native functional tests, not an independent security audit or penetration test. Windows-only input paths were cross-compiled, not executed here.
 

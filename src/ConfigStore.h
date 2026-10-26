@@ -47,7 +47,7 @@ class ConfigStore final : public QObject {
     bool finish(bool ok, const QString &text);
     ClickController *m_engine;
     QString m_query;
-    QString m_directory, m_notice, m_activeId, m_activeName = QStringLiteral("Без конфигурации");
+    QString m_directory, m_notice, m_activeId, m_activeName;
     QJsonObject m_applied;
     QVariantList m_profiles;
     bool m_failed = false;

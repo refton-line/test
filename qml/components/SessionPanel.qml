@@ -11,7 +11,7 @@ Item {
         return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
     }
     Label {
-        text: "Журнал"
+        text: qsTr("Журнал")
         font.pixelSize: 24
         font.weight: Font.DemiBold
     }
@@ -21,14 +21,14 @@ Item {
         Column {
             spacing: 8
             Label {
-                text: "Принятых пар"
+                text: qsTr("Принятых пар")
                 color: Theme.muted
                 font.pixelSize: 14
             }
             Label {
                 width: 220
                 height: 52
-                text: panel.engine.clicks.toLocaleString(Qt.locale("ru_RU"), 'f', 0)
+                text: panel.engine.clicks.toLocaleString(Qt.locale(i18n.locale), 'f', 0)
                 font.family: Theme.mono
                 font.pixelSize: 40
                 fontSizeMode: Text.Fit
@@ -38,7 +38,7 @@ Item {
         Column {
             spacing: 8
             Label {
-                text: "Время отправки"
+                text: qsTr("Время отправки")
                 color: Theme.muted
                 font.pixelSize: 14
             }
@@ -55,7 +55,7 @@ Item {
         Column {
             spacing: 8
             Label {
-                text: "Средняя отправка / с"
+                text: qsTr("Средняя отправка / с")
                 color: Theme.muted
                 font.pixelSize: 14
             }
@@ -75,7 +75,7 @@ Item {
         spacing: 8
         ActionButton {
             objectName: "copyLog"
-            text: "Копировать"
+            text: qsTr("Копировать")
             glyph: "copy"
             enabled: panel.engine.entries.length > 0
             onClicked: panel.engine.copyLog()
@@ -83,7 +83,7 @@ Item {
         }
         ActionButton {
             objectName: "clearLog"
-            text: "Очистить"
+            text: qsTr("Очистить")
             enabled: panel.engine.entries.length > 0 && !panel.engine.active
             onClicked: panel.engine.clearLog()
 
@@ -129,7 +129,7 @@ Item {
     Label {
         visible: panel.engine.entries.length === 0
         anchors.centerIn: list
-        text: "Журнал очищен"
+        text: qsTr("Журнал очищен")
         color: Theme.muted
         font.pixelSize: 14
     }

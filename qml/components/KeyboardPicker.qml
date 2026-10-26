@@ -37,8 +37,8 @@ Popup {
         radius: 14
         border.color: Theme.controlBorder
     }
-    enter: Transition { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.dialogEnter; easing.type: Easing.OutCubic } }
-    exit: Transition { NumberAnimation { property: "opacity"; to: 0; duration: Theme.dialogExit; easing.type: Easing.InCubic } }
+    enter: Transition { ParallelAnimation { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.dialogEnter; easing.type: Easing.OutCubic } NumberAnimation { property: "scale"; from: 0.96; to: 1; duration: Theme.dialogEnter; easing.type: Easing.OutCubic } } }
+    exit: Transition { ParallelAnimation { NumberAnimation { property: "opacity"; to: 0; duration: Theme.dialogExit; easing.type: Easing.InCubic } NumberAnimation { property: "scale"; to: 0.98; duration: Theme.dialogExit; easing.type: Easing.InCubic } } }
     contentItem: Item {
         Item {
             width: 1040; height: 556
@@ -48,7 +48,7 @@ Popup {
         Label {
             x: 24
             y: 22
-            text: "Назначение клавиши"
+            text: qsTr("Назначение клавиши")
             font.pixelSize: 22
             font.weight: Font.DemiBold
         }
@@ -59,20 +59,20 @@ Popup {
             text: ""
             glyph: "x"
             quiet: true
-            Accessible.name: "Закрыть клавиатуру"
+            Accessible.name: qsTr("Закрыть клавиатуру")
             onClicked: picker.close()
         }
         Row {
             x: 620; y: 66; spacing: 8
             ActionButton {
                 objectName: "singleMode"
-                text: "Одна клавиша"
+                text: qsTr("Одна клавиша")
                 segmented: true; checked: !picker.combination
                 onClicked: picker.engine.captureCombination = false
             }
             ActionButton {
                 objectName: "combinationMode"
-                text: "Сочетание"
+                text: qsTr("Сочетание")
                 segmented: true; checked: picker.combination
                 onClicked: picker.engine.captureCombination = true
             }
@@ -81,7 +81,7 @@ Popup {
             x: 24; y: 66; spacing: 8
             Label {
                 height: 44; width: 72
-                text: picker.targetBinding === 0 ? "Запуск" : "Стоп"
+                text: picker.targetBinding === 0 ? qsTr("Запуск") : qsTr("Стоп")
                 verticalAlignment: Text.AlignVCenter
                 font.pixelSize: 14
             }
@@ -93,12 +93,12 @@ Popup {
                     text: picker.engine.keyName(modelData)
                     checked: true
                     onClicked: picker.choose(modelData)
-                    Accessible.name: (picker.combination ? "Убрать " : "Выбрать ") + text
+                    Accessible.name: (picker.combination ? qsTr("Убрать %1") : qsTr("Выбрать %1")).arg(text)
                 }
             }
             Label {
                 height: 44
-                text: picker.chosenKeys.length ? "" : "Выберите клавиши"
+                text: picker.chosenKeys.length ? "" : qsTr("Выберите клавиши")
                 color: Theme.muted
                 verticalAlignment: Text.AlignVCenter
                 font.pixelSize: 14
@@ -172,7 +172,7 @@ Popup {
         ActionButton {
             x: 24
             y: 492
-            text: "По умолчанию"
+            text: qsTr("По умолчанию")
             glyph: "undo"
 
             onClicked: {
@@ -184,7 +184,7 @@ Popup {
             x: 744
             y: 492
             width: 128
-            text: "Отмена"
+            text: qsTr("Отмена")
             onClicked: picker.close()
 
         }
@@ -193,7 +193,7 @@ Popup {
             x: 884
             y: 492
             width: 132
-            text: "Применить"
+            text: qsTr("Применить")
             primary: true
             enabled: picker.chosenKeys.length > 0
             onClicked: {

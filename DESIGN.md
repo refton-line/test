@@ -41,6 +41,11 @@ validKey and validChordKey agree on physical side-specific modifiers and PrintSc
 ## AltGrCapture 0.4.7
 No new visual controls. An editor-only Qt right-Alt bridge supplements Raw Input capture. Press identity uses explicit AltGr or Windows right-side native metadata, not translated modifier flags. The editor selects on held-state union rising edges to coalesce both deliveries; releasing one source does not release another. Background matching and storage remain unchanged.
 
+## Languages and motion 0.6.0
+A fifth rail destination, Language, with a globe icon in the existing 1.75px stroke style. Two equal cards (EN / RU) show the code in large mono, the native language name and a sample line in that language; the selected card uses the same crimson fill, edge marker and a check badge that scales in. Changing language fades the whole interface out (90 ms), swaps the catalogue while invisible and fades back (220 ms). Default English; the Russian copy stays the source text. "Конфигурации" is "Profiles" in English: shorter in the rail and matches the wording of the list.
+
+Motion is extended where state used to snap, by explicit user request: closing reverses the opening morph (shell folds to the 480×340 card, C re-centres, 300 ms InOutCubic) before the existing 170 ms fade, with the native window mask re-enabled so only the card remains visible; mode bodies crossfade with a 14px slide (85/170 ms like pages); the error banner fades and rises 12px; dialogs add a 0.96→1 scale to their opacity reveal; navigation and profile markers grow from 0; the session dot breathes (1.2 s) only while sending. Input still stops before any closing animation.
+
 ## Modes 0.5.0
 Same instrument, one new decision at the top. The page heading row now carries a three-way mode switch (Легит / Блатант / Свой) on the right, with a single muted sentence underneath saying what the mode physically does. Only the chosen mode's controls are shown (progressive disclosure, see REFERENCES.md). Legit shows a large mono CPS range, a two-handle range slider with quiet 1/10/20/30 ticks and four named range presets. Blatant keeps the original large interval instrument and presets, now 10–500 / s, plus hold. Custom lists every knob in labelled rows, with segmented choices for delivery and tempo.
 

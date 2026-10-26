@@ -41,6 +41,9 @@ QtObject {
     readonly property int dialogExit: 100
     readonly property int keyFeedback: 75
     readonly property int exitDuration: 170
+    readonly property int exitMorph: 300
+    readonly property int languageOut: 90
+    readonly property int languageIn: 220
     readonly property int reveal: 560
     readonly property int baseWidth: 1160
     readonly property int baseHeight: 800

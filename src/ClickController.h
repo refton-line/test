@@ -116,7 +116,9 @@ class ClickController final : public QObject, public QAbstractNativeEventFilter 
     double averageCps() const;
     double measuredCps() const { return m_recentCps; }
     double maxLateMs() const { return m_maxLateNs.load() / 1e6; }
-    QString state() const { return m_state; }
+    QString state() const;
+    // Re-emits derived text (state, mode summary) after a language switch.
+    Q_INVOKABLE void retranslate();
     QString error() const { return m_error; }
     QStringList entries() const { return m_entries; }
     void setIntervalMs(int);
@@ -162,7 +164,7 @@ class ClickController final : public QObject, public QAbstractNativeEventFilter 
     void clearKeyboardState();
     bool m_numLockOn = true, m_captureCombination = false;
     void launch();
-    void complete(const QString &);
+    void complete(const QString &, bool cancelled = false);
     void record(const QString &);
     void persist();
     void runWorker();
@@ -180,7 +182,8 @@ class ClickController final : public QObject, public QAbstractNativeEventFilter 
     double m_recentCps = -1;
     int m_countdown = 0;
     bool m_active = false, m_available = false, m_ready = false, m_editing = false;
-    QString m_state = QStringLiteral("Готов"), m_error;
+    enum RunState { Ready, Preparing, Running, Stopping } m_runState = Ready;
+    QString m_error;
     QStringList m_entries;
     void *m_stopEvent = nullptr;
 };

@@ -48,6 +48,10 @@ RAWKEYBOARD stores E0/E1 in Flags separately from MakeCode: https://learn.micros
 ### Qt AltGr editor bridge (0.4.7)
 QKeyEvent exposes key(), nativeVirtualKey() and nativeScanCode(): https://doc.qt.io/qt-6/qkeyevent.html . The bridge accepts explicit Qt::Key_AltGr; only on Windows it also interprets right-Alt native metadata. Raw Input remains the background source. Tests cover bridge/merge behavior, not every Windows layout/driver's real delivery.
 
+## 0.6.0 languages (October 26, 2026)
+- [Qt 6.8 qt_add_translations](https://doc.qt.io/qt-6.8/qtlinguist-cmake-qt-add-translations.html) and [QQmlEngine::retranslate](https://doc.qt.io/qt-6/qqmlengine.html#retranslate): build-time `.qm` embedded as resources; live switching re-evaluates `qsTr` bindings without restart. Checked against the installed 6.8.3 CMake macros (RESOURCE_PREFIX cannot be combined with QM_FILES_OUTPUT_VARIABLE, so tests load the `.qm` from the build directory).
+- The opening morph already in the app is the reference for the close animation: the same expansion parameter runs backwards, so closing reads as the opening in reverse rather than a new effect.
+
 ## 0.5.0 click modes (October 26, 2026)
 - [OP Auto Clicker features](https://opautoclicker.io/features.html), 4.1 notes (read as text, no screenshots inspected): a base interval plus an optional "Random offset ±" millisecond field (100 ms ± 40 ms), mouse button choice and repeat-until-stopped/count. Applied: randomness as a first-class, opt-in parameter next to the interval (Custom ± %), button choice and limits kept as compact rows. Rejected: hours/minutes/seconds/ms field grid, which doesn't suit a CPS-oriented tool.
 - CPS ranges are the established control vocabulary of gaming auto-clickers. Applied as a two-handle range plus named presets instead of two separate numeric fields. No third-party UI or assets copied.
