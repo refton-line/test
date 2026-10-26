@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
     app.setApplicationDisplayName("C clicker");
     app.setOrganizationName("ObsidianClick");
     app.setApplicationName("ObsidianClick");
-    app.setApplicationVersion("0.9.0-daylight");
+    app.setApplicationVersion("0.9.1-daylight");
     app.setWindowIcon(QIcon(":/qt/qml/CClicker/assets/app.ico"));
     for (const char *face : {"Geist-Regular", "Geist-Medium", "Geist-SemiBold", "GeistMono-Regular", "GeistMono-Medium"})
         QFontDatabase::addApplicationFont(QString(":/qt/qml/CClicker/assets/fonts/%1.ttf").arg(face));

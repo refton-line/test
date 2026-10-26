@@ -13,6 +13,8 @@ Button {
     property bool fillChecked: true
     // On a dark surface (window controls pill): light glyphs, translucent white states.
     property bool inverse: false
+    // Close-style button: red face and white glyph on hover/press.
+    property bool destructive: false
     property bool centered: !navigation
     property int textSize: Theme.small
     property int maxTextWidth: 1000
@@ -36,6 +38,7 @@ Button {
     background: Rectangle {
         radius: control.segmented ? Theme.radiusSmall : Theme.radius
         color: control.lightFace ? Theme.accent
+             : control.destructive && (control.hovered || control.down) ? (control.down ? Theme.dangerPressed : Theme.dangerFace)
              : control.inverse ? (control.down ? Theme.alpha(Theme.sheen, 0.22) : control.hovered ? Theme.alpha(Theme.sheen, 0.12) : Theme.clear)
              : control.checked && !control.fillChecked ? Theme.clear
              : control.down ? Theme.accentSoft
@@ -85,7 +88,7 @@ Button {
                 visible: control.glyph !== ""
                 name: control.glyph
                 foreground: control.lightFace ? Theme.accentInk
-                          : control.inverse ? Theme.sheen
+                          : control.inverse || (control.destructive && (control.hovered || control.down)) ? Theme.sheen
                           : control.navigation && !control.checked ? Theme.muted : Theme.ink
                 width: control.navigation ? 18 : 20; height: width
                 anchors.verticalCenter: parent.verticalCenter

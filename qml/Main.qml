@@ -242,18 +242,20 @@ ApplicationWindow {
                     anchors.right: parent.right; anchors.rightMargin: 14
                     y: 16; height: 40
                     width: controlsRow.implicitWidth + 8
-                    radius: 12
-                    color: Theme.alpha(Theme.night, 0.92)
+                    // Light pill matching the navigation; only Close turns red on hover.
+                    radius: 20
+                    color: Theme.chrome
+                    border.color: Theme.hairline
                     opacity: win.chromeReveal
                     transform: Translate { y: -10 * (1 - win.chromeReveal) }
-                    Shadow { z: -1; anchors.fill: parent; radius: parent.radius; peak: 0.08; spread: 12 }
+                    Shadow { z: -1; anchors.fill: parent; radius: parent.radius; peak: 0.05 }
                     Row {
                         id: controlsRow
                         x: 4; anchors.verticalCenter: parent.verticalCenter
-                        ActionButton { text: ""; glyph: "minus"; quiet: true; inverse: true; width: 36; height: 32; Accessible.name: qsTr("Свернуть"); onClicked: win.showMinimized() }
-                        ActionButton { objectName: "maximizeButton"; text: ""; glyph: win.maximized ? "restore" : "maximize"; quiet: true; inverse: true; width: 36; height: 32; Accessible.name: win.maximized ? qsTr("Восстановить окно") : qsTr("Развернуть окно"); enabled: !win.fullScreen; onClicked: win.toggleMaximized() }
-                        ActionButton { objectName: "fullscreenButton"; text: ""; glyph: win.fullScreen ? "minimize" : "fullscreen"; quiet: true; inverse: true; width: 36; height: 32; Accessible.name: win.fullScreen ? qsTr("Выйти из полного экрана") : qsTr("Полный экран"); onClicked: win.toggleFullscreen() }
-                        ActionButton { objectName: "closeButton"; text: ""; glyph: "x"; quiet: true; inverse: true; width: 36; height: 32; Accessible.name: qsTr("Закрыть"); onClicked: win.requestClose() }
+                        ActionButton { text: ""; glyph: "minus"; quiet: true; width: 36; height: 32; Accessible.name: qsTr("Свернуть"); onClicked: win.showMinimized() }
+                        ActionButton { objectName: "maximizeButton"; text: ""; glyph: win.maximized ? "restore" : "maximize"; quiet: true; width: 36; height: 32; Accessible.name: win.maximized ? qsTr("Восстановить окно") : qsTr("Развернуть окно"); enabled: !win.fullScreen; onClicked: win.toggleMaximized() }
+                        ActionButton { objectName: "fullscreenButton"; text: ""; glyph: win.fullScreen ? "minimize" : "fullscreen"; quiet: true; width: 36; height: 32; Accessible.name: win.fullScreen ? qsTr("Выйти из полного экрана") : qsTr("Полный экран"); onClicked: win.toggleFullscreen() }
+                        ActionButton { objectName: "closeButton"; text: ""; glyph: "x"; quiet: true; destructive: true; width: 36; height: 32; Accessible.name: qsTr("Закрыть"); onClicked: win.requestClose() }
                     }
                 }
 
