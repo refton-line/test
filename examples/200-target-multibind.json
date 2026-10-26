@@ -1,0 +1,29 @@
+{
+  "format": "c-clicker",
+  "version": 2,
+  "name": "200 / с · цель",
+  "settings": {
+    "intervalMs": 5,
+    "durationSec": 0,
+    "mouseButton": 0,
+    "holdMs": 1,
+    "countLimit": 200,
+    "startKey": 117,
+    "startMods": 0,
+    "stopKey": 119,
+    "stopMods": 0,
+    "launchDelaySec": 3,
+    "startExtra": [
+      {
+        "key": 75,
+        "mods": 1
+      }
+    ],
+    "stopExtra": [
+      {
+        "key": 76,
+        "mods": 5
+      }
+    ]
+  }
+}

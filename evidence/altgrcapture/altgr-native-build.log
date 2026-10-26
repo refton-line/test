@@ -1,0 +1,57 @@
+[0/2] Re-checking globbed directories...
+-- GLOB mismatch!
+The following files were removed:
+  -assets/info.svg
+[1/2] Re-running CMake...
+-- Could NOT find WrapVulkanHeaders (missing: Vulkan_INCLUDE_DIR) 
+-- Could NOT find WrapVulkanHeaders (missing: Vulkan_INCLUDE_DIR) 
+-- Configuring done (0.3s)
+-- Generating done (0.0s)
+-- Build files have been written to: /data/work/C-clicker-Beta/build-chords
+[0/4] Re-checking globbed directories...
+[1/53] Automatic MOC and UIC for target controller_tests
+[2/52] Running qmlimportscanner for CClicker
+[3/52] Automatic MOC and UIC for target CClicker
+[4/51] Running AUTOMOC file extraction for target CClicker
+[5/51] Running moc --collect-json for target CClicker
+[6/49] Generating .rcc/qmlcache/CClicker_qmlcache_loader.cpp
+[7/49] Generating .rcc/qmlcache/CClicker_qml/Main_qml.cpp, .rcc/qmlcache/CClicker_qml/Main_qml.cpp.aotstats
+[8/49] Generating .rcc/qmlcache/CClicker_qml/Theme_qml.cpp, .rcc/qmlcache/CClicker_qml/Theme_qml.cpp.aotstats
+[9/49] Generating .rcc/qmlcache/CClicker_qml/components/ActionButton_qml.cpp, .rcc/qmlcache/CClicker_qml/components/ActionButton_qml.cpp.aotstats
+[10/49] Generating .rcc/qmlcache/CClicker_qml/components/BootStage_qml.cpp, .rcc/qmlcache/CClicker_qml/components/BootStage_qml.cpp.aotstats
+[11/49] Generating .rcc/qmlcache/CClicker_qml/components/CMark_qml.cpp, .rcc/qmlcache/CClicker_qml/components/CMark_qml.cpp.aotstats
+[12/49] Generating .rcc/qmlcache/CClicker_qml/components/ConfigPanel_qml.cpp, .rcc/qmlcache/CClicker_qml/components/ConfigPanel_qml.cpp.aotstats
+[13/49] Generating .rcc/qmlcache/CClicker_qml/components/Icon_qml.cpp, .rcc/qmlcache/CClicker_qml/components/Icon_qml.cpp.aotstats
+[14/49] Generating .rcc/qmlcache/CClicker_qml/components/KeyboardMap_js.cpp
+[15/49] Generating .rcc/qmlcache/CClicker_qml/components/KeyboardPicker_qml.cpp, .rcc/qmlcache/CClicker_qml/components/KeyboardPicker_qml.cpp.aotstats
+[16/49] Generating .rcc/qmlcache/CClicker_qml/components/Label_qml.cpp, .rcc/qmlcache/CClicker_qml/components/Label_qml.cpp.aotstats
+[17/49] Generating .rcc/qmlcache/CClicker_qml/components/LiveMetrics_qml.cpp, .rcc/qmlcache/CClicker_qml/components/LiveMetrics_qml.cpp.aotstats
+[18/49] Generating .rcc/qmlcache/CClicker_qml/components/NumberField_qml.cpp, .rcc/qmlcache/CClicker_qml/components/NumberField_qml.cpp.aotstats
+[19/49] Generating .rcc/qmlcache/CClicker_qml/components/PreferencesPanel_qml.cpp, .rcc/qmlcache/CClicker_qml/components/PreferencesPanel_qml.cpp.aotstats
+[20/49] Generating .rcc/qmlcache/CClicker_qml/components/SessionPanel_qml.cpp, .rcc/qmlcache/CClicker_qml/components/SessionPanel_qml.cpp.aotstats
+[21/49] Generating .rcc/qmlcache/CClicker_qml/components/SettingsPanel_qml.cpp, .rcc/qmlcache/CClicker_qml/components/SettingsPanel_qml.cpp.aotstats
+[22/49] Running rcc for resource CClicker_raw_qml_0
+[23/49] Building CXX object CMakeFiles/CClicker.dir/src/main.cpp.o
+[24/49] Building CXX object CMakeFiles/controller_tests.dir/src/KeyBindings.cpp.o
+[25/49] Building CXX object CMakeFiles/controller_tests.dir/tests/controller_tests.cpp.o
+[26/49] Building CXX object CMakeFiles/CClicker.dir/build-chords/.rcc/qmlcache/CClicker_qmlcache_loader.cpp.o
+[27/49] Building CXX object CMakeFiles/CClicker.dir/src/KeyBindings.cpp.o
+[28/49] Building CXX object CMakeFiles/CClicker.dir/build-chords/.rcc/qmlcache/CClicker_qml/Theme_qml.cpp.o
+[29/49] Building CXX object CMakeFiles/CClicker.dir/src/CaptureHarness.cpp.o
+[30/49] Building CXX object CMakeFiles/CClicker.dir/build-chords/.rcc/qmlcache/CClicker_qml/Main_qml.cpp.o
+[31/49] Building CXX object CMakeFiles/CClicker.dir/build-chords/.rcc/qmlcache/CClicker_qml/components/ActionButton_qml.cpp.o
+[32/49] Building CXX object CMakeFiles/CClicker.dir/build-chords/.rcc/qmlcache/CClicker_qml/components/BootStage_qml.cpp.o
+[33/49] Building CXX object CMakeFiles/CClicker.dir/build-chords/.rcc/qmlcache/CClicker_qml/components/CMark_qml.cpp.o
+[34/49] Building CXX object CMakeFiles/CClicker.dir/build-chords/.rcc/qmlcache/CClicker_qml/components/ConfigPanel_qml.cpp.o
+[35/49] Building CXX object CMakeFiles/CClicker.dir/build-chords/.rcc/qmlcache/CClicker_qml/components/KeyboardMap_js.cpp.o
+[36/49] Building CXX object CMakeFiles/CClicker.dir/build-chords/.rcc/qmlcache/CClicker_qml/components/Icon_qml.cpp.o
+[37/49] Building CXX object CMakeFiles/CClicker.dir/build-chords/.rcc/qmlcache/CClicker_qml/components/KeyboardPicker_qml.cpp.o
+[38/49] Building CXX object CMakeFiles/CClicker.dir/build-chords/.rcc/qmlcache/CClicker_qml/components/Label_qml.cpp.o
+[39/49] Building CXX object CMakeFiles/CClicker.dir/build-chords/.rcc/qmlcache/CClicker_qml/components/NumberField_qml.cpp.o
+[40/49] Building CXX object CMakeFiles/CClicker.dir/build-chords/.rcc/qmlcache/CClicker_qml/components/LiveMetrics_qml.cpp.o
+[41/49] Building CXX object CMakeFiles/CClicker.dir/build-chords/.rcc/qmlcache/CClicker_qml/components/PreferencesPanel_qml.cpp.o
+[42/49] Building CXX object CMakeFiles/CClicker.dir/build-chords/.qt/rcc/qrc_CClicker_raw_qml_0.cpp.o
+[43/49] Linking CXX executable controller_tests
+[44/49] Building CXX object CMakeFiles/CClicker.dir/build-chords/.rcc/qmlcache/CClicker_qml/components/SessionPanel_qml.cpp.o
+[45/49] Building CXX object CMakeFiles/CClicker.dir/build-chords/.rcc/qmlcache/CClicker_qml/components/SettingsPanel_qml.cpp.o
+[46/49] Linking CXX executable bin/CClicker

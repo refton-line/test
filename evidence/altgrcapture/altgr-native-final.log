@@ -1,0 +1,6 @@
+[0/2] Re-checking globbed directories...
+[1/39] Automatic MOC and UIC for target CClicker
+[2/38] Running AUTOMOC file extraction for target CClicker
+[3/38] Running moc --collect-json for target CClicker
+[4/6] Building CXX object CMakeFiles/CClicker.dir/src/CaptureHarness.cpp.o
+[5/6] Linking CXX executable bin/CClicker

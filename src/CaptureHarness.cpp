@@ -1,0 +1,567 @@
+#include "CaptureHarness.h"
+#include "ClickController.h"
+#include "ConfigStore.h"
+#include <QDebug>
+#include <functional>
+#include <memory>
+#include <vector>
+#include <QDir>
+#include <QGuiApplication>
+#include <QImage>
+#include <QKeyEvent>
+#include <QMouseEvent>
+#include <QQuickItem>
+#include <QQuickWindow>
+#include <QScreen>
+#include <QTimer>
+namespace {
+QQuickItem *find(QQuickItem *item, const QString &name) {
+    if (item->objectName() == name)
+        return item;
+    for (auto *child : item->childItems())
+        if (auto *found = find(child, name))
+            return found;
+    return nullptr;
+}
+void assertCleanShell(QQuickItem *item) {
+    if (!item->isVisible()) return;
+    if (item->objectName() == "refreshConfigs" || item->property("glyph").toString() == "info")
+        qFatal("Removed redundant button returned");
+    const QString text = item->property("text").toString();
+    if (text.contains("Beta", Qt::CaseInsensitive) || text.contains(QStringLiteral("Без конфигурации")) ||
+        text.contains(QStringLiteral("  запуск     ")))
+        qFatal("Removed shell clutter returned: %s", qPrintable(text));
+    for (auto *child : item->childItems()) assertCleanShell(child);
+}
+void snapshot(QQuickWindow *win, const QString &path) {
+    assertCleanShell(win->contentItem());
+    for (const auto &name : {"keyboardPicker", "configNameDialog", "deleteConfigDialog", "limitsPopup"}) {
+        auto *popup = win->findChild<QObject *>(name);
+        if (popup && popup->property("visible").toBool() && popup->property("opacity").toReal() < 0.8)
+            qFatal("Visible popup has unreadable opacity: %s", name);
+    }
+    if (!win->grabWindow().save(path))
+        qFatal("Capture failed");
+}
+void click(QQuickWindow *win, const QString &name) {
+    auto *item = find(win->contentItem(), name);
+    if (!item || !QMetaObject::invokeMethod(item, "click"))
+        qFatal("UI action not found: %s", qPrintable(name));
+}
+} // namespace
+void runCaptureHarness(QQuickWindow *win, const QString &output, ClickController *engine,
+                       ConfigStore *configs) {
+    QDir().mkpath(output);
+    const int capturePace = QCoreApplication::arguments().contains("--capture-slow") ? 3 : 1;
+    // A relative sequence keeps a costly first font/layout/grab from bunching later actions
+    // into one event-loop turn, before Qt has rendered the previous transition.
+    struct Step { int time; std::function<void()> action; };
+    auto steps = std::make_shared<std::vector<Step>>();
+    auto index = std::make_shared<size_t>(0);
+    auto previous = std::make_shared<int>(0);
+    auto runner = std::make_shared<std::function<void()>>();
+    std::weak_ptr<std::function<void()>> weakRunner = runner;
+    *runner = [=] {
+        if (*index >= steps->size()) return;
+        const auto step = steps->at((*index)++);
+        const int delay = qMax(1, step.time - *previous);
+        *previous = step.time;
+        auto next = weakRunner.lock();
+        QTimer::singleShot(delay, win, [step, next] { step.action(); (*next)(); });
+    };
+    QTimer::singleShot(0, win, [runner] { (*runner)(); });
+    auto at = [steps, capturePace](int ms, auto fn) {
+        steps->push_back({ms <= 1600 ? ms : ms * capturePace, fn});
+    };
+    auto shot = [=](const QString &name) { snapshot(win, output + "/" + name + ".png"); };
+    if (QCoreApplication::arguments().contains("--capture-window-tests")) {
+        at(1600, [=] { shot("windowed"); });
+        at(1800, [=] { click(win, "fullscreenButton"); });
+        at(2200, [=] {
+            if (win->visibility() != QWindow::FullScreen)
+                qFatal("Fullscreen state did not activate");
+            if (QGuiApplication::platformName() == "xcb" &&
+                win->size() != win->screen()->geometry().size())
+                qFatal("Fullscreen did not fill screen geometry (run with a window manager)");
+            shot("fullscreen");
+        });
+        at(2400, [=] { click(win, "fullscreenButton"); });
+        at(2800, [=] {
+            if (win->visibility() != QWindow::Windowed)
+                qFatal("Fullscreen did not restore window state");
+            shot("restored");
+        });
+        at(3000, [=] { click(win, "maximizeButton"); });
+        at(3300, [=] {
+            if (win->visibility() != QWindow::Maximized) qFatal("Maximize state did not activate");
+            const QRect work = win->screen()->availableGeometry();
+            if (QGuiApplication::platformName() == "xcb" &&
+                (win->size() != work.size() || win->position() != work.topLeft()))
+                qFatal("Maximize did not use available work area");
+            shot("maximized");
+            click(win, "fullscreenButton");
+        });
+        at(3500, [=] { click(win, "fullscreenButton"); });
+        at(3700, [=] {
+            if (win->visibility() != QWindow::Maximized) qFatal("Fullscreen failed to restore maximized");
+            click(win, "maximizeButton");
+        });
+        at(3900, [=] {
+            if (win->visibility() != QWindow::Windowed || win->size() != QSize(1160,800))
+                qFatal("Maximize did not restore normal geometry");
+            shot("maximize-restored");
+        });
+        at(4000, [=] { win->resize(1440, 900); });
+        at(4300, [=] { shot("wide-window"); });
+        at(4500, [=] { win->resize(1160, 800); });
+        at(4800, [=] { click(win, "closeButton"); });
+        at(4830, [=] {
+            if (!win->property("exiting").toBool() || engine->active())
+                qFatal("Close did not stop input immediately");
+            shot("closing");
+            qInfo() << "NATIVE_WINDOW_UI_PASS (fullscreen, work-area maximize, normal/maximized restore, resize, close stop)";
+        });
+        return;
+    }
+    if (QCoreApplication::arguments().contains("--capture-adaptive-tests")) {
+        at(1600, [=] {
+            const QRect available = win->screen()->availableGeometry();
+            if (!available.contains(win->geometry()) || win->property("uiScale").toReal() >= 1)
+                qFatal("Adaptive small-screen window does not fit its work area");
+            shot("adaptive-clicker"); click(win, "nav2");
+        });
+        at(2100, [=] { click(win, "editStartBinding"); });
+        at(2500, [=] {
+            auto *popup = win->findChild<QObject *>("keyboardPicker");
+            auto *content = popup ? qobject_cast<QQuickItem *>(popup->property("contentItem").value<QObject *>()) : nullptr;
+            if (!content) qFatal("Adaptive keyboard content missing");
+            const QRectF bounds = content->mapRectToScene(QRectF(0, 0, content->width(), content->height()));
+            if (!QRectF(0, 0, win->width(), win->height()).adjusted(-1,-1,1,1).contains(bounds))
+                qFatal("Adaptive virtual keyboard is clipped by actual scene bounds");
+            shot("adaptive-keyboard"); QMetaObject::invokeMethod(popup, "close");
+        });
+        at(2800, [=] { click(win, "maximizeButton"); });
+        at(3200, [=] {
+            if (win->size() != win->screen()->availableGeometry().size()) qFatal("DPI maximize work area mismatch");
+            shot("adaptive-maximized");
+            qInfo() << "NATIVE_ADAPTIVE_UI_PASS (150% scale, small work area, keyboard fit, maximize)";
+            QCoreApplication::quit();
+        });
+        return;
+    }
+    if (QCoreApplication::arguments().contains("--capture-keyboard-tests")) {
+        at(1700, [=] {
+            auto *nav = find(win->contentItem(), "nav2");
+            const QPointF pos = nav->mapToScene(QPointF(nav->width()/2, nav->height()/2));
+            const QPointF global = win->mapToGlobal(pos.toPoint());
+            QMouseEvent press(QEvent::MouseButtonPress, pos, global, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+            QMouseEvent release(QEvent::MouseButtonRelease, pos, global, Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+            QGuiApplication::sendEvent(win, &press); QGuiApplication::sendEvent(win, &release);
+            if (nav->property("visualFocus").toBool()) qFatal("Mouse click left a keyboard focus ring");
+            QKeyEvent tab(QEvent::KeyPress, Qt::Key_Tab, Qt::NoModifier);
+            QKeyEvent tabUp(QEvent::KeyRelease, Qt::Key_Tab, Qt::NoModifier);
+            QGuiApplication::sendEvent(win, &tab); QGuiApplication::sendEvent(win, &tabUp);
+            auto *focused = win->activeFocusItem();
+            if (!focused || !focused->property("visualFocus").toBool())
+                qFatal("Keyboard Tab focus ring missing");
+        });
+        at(1800, [=] {
+            click(win, "nav3");
+            QTimer::singleShot(20, win, [=] { click(win, "nav1"); });
+            QTimer::singleShot(40, win, [=] { click(win, "nav2"); });
+        });
+        at(2250, [=] {
+            if (win->property("displayedPage").toInt() != 2 || find(win->contentItem(), "motionToggle"))
+                qFatal("Rapid navigation or motion toggle removal failed");
+            click(win, "editStartBinding");
+        });
+        at(2400, [=] {
+            auto *mode = find(win->contentItem(), "combinationMode");
+            auto *key = find(win->contentItem(), "keycap75");
+            if (!mode || !key) qFatal("Keyboard mode controls missing");
+            click(win, "combinationMode");
+            QKeyEvent press(QEvent::KeyPress, Qt::Key_Control, Qt::ControlModifier);
+            QGuiApplication::sendEvent(win, &press);
+            if (!engine->pressedKeys().contains(162)) qFatal("Ctrl live state missing");
+        });
+        at(2600, [=] { shot("keyboard-ctrl-held"); });
+        at(2800, [=] {
+            QKeyEvent press(QEvent::KeyPress, Qt::Key_K, Qt::ControlModifier);
+            QGuiApplication::sendEvent(win, &press);
+            if (!find(win->contentItem(), "keycap75")->property("pressedPhysical").toBool())
+                qFatal("Physical key feedback missing");
+        });
+        at(3000, [=] { shot("keyboard-chord-held"); });
+        at(3200, [=] {
+            QKeyEvent release(QEvent::KeyRelease, Qt::Key_K, Qt::ControlModifier);
+            QKeyEvent ctrlUp(QEvent::KeyRelease, Qt::Key_Control, Qt::NoModifier);
+            QGuiApplication::sendEvent(win, &release); QGuiApplication::sendEvent(win, &ctrlUp);
+            if (!engine->pressedKeys().isEmpty()) qFatal("Pressed state stuck after release");
+            shot("keyboard-chord-released");
+            click(win, "singleMode");
+            if (!engine->draftKeys().isEmpty()) qFatal("Single mode retained chord draft");
+            click(win, "keycap75");
+            QKeyEvent num(QEvent::KeyPress, Qt::Key_NumLock, Qt::NoModifier);
+            QGuiApplication::sendEvent(win, &num);
+            QKeyEvent numUp(QEvent::KeyRelease, Qt::Key_NumLock, Qt::NoModifier);
+            QGuiApplication::sendEvent(win, &numUp);
+        });
+        at(3400, [=] { shot("keyboard-num-off"); });
+        at(3600, [=] {
+            const auto before = engine->draftKeys();
+            QKeyEvent numHome(QEvent::KeyPress, Qt::Key_Home, Qt::KeypadModifier);
+            QGuiApplication::sendEvent(win, &numHome);
+            if (engine->draftKeys() != before || find(win->contentItem(), "keycap103")->isEnabled())
+                qFatal("Num off keypad was not ignored");
+            click(win, "applyKeyboard");
+            if (engine->config().startChord != QList<int>({75})) qFatal("Single mode apply failed");
+        });
+        at(3800, [=] { click(win, "editStartBinding"); });
+        at(4000, [=] {
+            click(win, "combinationMode");
+            click(win, "keycap72"); click(win, "keycap89");
+            if (engine->draftKeys() != QVariantList({72,89})) qFatal("Mouse H Y lost a key");
+            click(win, "keycap72");
+            if (engine->draftKeys() != QVariantList({89})) qFatal("Repeated mouse key did not remove");
+            click(win, "keycap72"); click(win, "keycap107");
+        });
+        at(4200, [=] {
+            shot("triple-literal-plus");
+            click(win, "keycap75");
+            if (engine->draftKeys() != QVariantList({89,72,107}) || engine->draftError().isEmpty()) qFatal("Triple key limit failed");
+            click(win, "keycap107"); click(win, "keycap163");
+            if (engine->draftKeys() != QVariantList({89,72,163})) qFatal("Right Ctrl mouse identity failed");
+        });
+        at(4400, [=] { shot("triple-side-specific"); });
+        at(4600, [=] {
+            click(win, "applyKeyboard");
+            if (engine->config().startChord != QList<int>({89,72,163})) qFatal("Arbitrary triple did not persist");
+        });
+        at(4800, [=] { click(win, "editStartBinding"); });
+        at(5000, [=] {
+            click(win, "singleMode");
+            for (auto pair : QList<QPair<int,int>>{{Qt::Key_Left,37},{Qt::Key_Up,38},{Qt::Key_Right,39},{Qt::Key_Down,40},
+                {Qt::Key_Home,36},{Qt::Key_End,35},{Qt::Key_PageUp,33},{Qt::Key_PageDown,34},{Qt::Key_Insert,45},{Qt::Key_Delete,46}}) {
+                QKeyEvent press(QEvent::KeyPress, pair.first, Qt::NoModifier);
+                QKeyEvent release(QEvent::KeyRelease, pair.first, Qt::NoModifier);
+                QGuiApplication::sendEvent(win, &press); QGuiApplication::sendEvent(win, &release);
+                if (engine->draftKeys() != QVariantList({pair.second}) || !engine->pressedKeys().isEmpty()) qFatal("Navigation group capture failed");
+            }
+        });
+        at(5200, [=] { shot("navigation-delete-selected"); });
+        at(5400, [=] {
+            click(win, "applyKeyboard");
+            if (engine->config().startChord != QList<int>({46})) qFatal("Navigation key did not persist");
+        });
+        at(5600, [=] { click(win, "editStartBinding"); });
+        at(5800, [=] {
+            auto *key = find(win->contentItem(), "keycap75"); key->forceActiveFocus();
+            auto *before = win->activeFocusItem();
+            QKeyEvent down(QEvent::KeyPress, Qt::Key_Tab, Qt::NoModifier);
+            QKeyEvent up(QEvent::KeyRelease, Qt::Key_Tab, Qt::NoModifier);
+            QGuiApplication::sendEvent(win,&down); QGuiApplication::sendEvent(win,&up);
+            if (engine->draftKeys() != QVariantList{9} || !engine->pressedKeys().isEmpty() ||
+                win->activeFocusItem() != before || !find(win->contentItem(),"keycap9")->property("selected").toBool())
+                qFatal("Tab navigated instead of selecting physical key");
+        });
+        at(6000, [=] {
+            shot("tab-single-selected"); click(win,"applyKeyboard");
+            if (engine->config().startChord != QList<int>{9}) qFatal("Tab single did not persist");
+        });
+        at(6200, [=] { click(win,"editStartBinding"); });
+        at(6400, [=] {
+            click(win,"combinationMode");
+            auto *key = find(win->contentItem(),"keycap75"); key->forceActiveFocus();
+            auto *before = win->activeFocusItem();
+            QKeyEvent shift(QEvent::KeyPress,Qt::Key_Shift,Qt::ShiftModifier);
+            QKeyEvent tab(QEvent::KeyPress,Qt::Key_Backtab,Qt::ShiftModifier);
+            QKeyEvent tabUp(QEvent::KeyRelease,Qt::Key_Backtab,Qt::ShiftModifier);
+            QKeyEvent shiftUp(QEvent::KeyRelease,Qt::Key_Shift,Qt::NoModifier);
+            for (auto *event : {&shift,&tab,&tabUp,&shiftUp}) QGuiApplication::sendEvent(win,event);
+            if (engine->draftKeys() != QVariantList({160,9}) || !engine->pressedKeys().isEmpty() || win->activeFocusItem()!=before)
+                qFatal("Shift Tab traversed instead of recording chord");
+        });
+        at(6600, [=] {
+            shot("tab-shift-selected"); click(win,"applyKeyboard");
+            if (engine->config().startChord != QList<int>({160,9})) qFatal("Shift Tab did not persist");
+        });
+        at(6800, [=] { click(win,"editStartBinding"); });
+        at(7000, [=] {
+            engine->beginBindingDraft({},true);
+            engine->processWindowsKey(163,0x21d,true,false,true,true,77);
+            engine->processWindowsKey(18,0x38,true,false,true,true,77);
+            if (engine->draftKeys()!=QVariantList{165} || engine->pressedKeys()!=QVariantList{165})
+                qFatal("Raw AltGr metadata fabricated Ctrl in UI");
+        });
+        at(7200, [=] { shot("altgr-only-held"); });
+        at(7400, [=] {
+            engine->processWindowsKey(163,0x21d,true,false,false,true,77);
+            engine->processWindowsKey(18,0x38,true,false,false,true,77);
+            if (!engine->pressedKeys().isEmpty()) qFatal("AltGr held state stuck");
+            engine->processWindowsKey(17,0x1d,true,false,true,true,77);
+            engine->processWindowsKey(18,0x38,true,false,true,true,77);
+            if (engine->pressedKeys()!=QVariantList({163,165})) qFatal("Genuine Ctrl R Alt R lost");
+        });
+        at(7600, [=] { shot("genuine-ctrl-alt-held"); click(win,"cancelKeyboard"); });
+        at(7800, [=] {
+            if (!engine->pressedKeys().isEmpty() || !engine->draftError().isEmpty()) qFatal("Cancel retained input state");
+        });
+        at(8000, [=] { click(win,"editStartBinding"); });
+        at(8200, [=] {
+            click(win,"singleMode");
+            QKeyEvent down(QEvent::KeyPress,Qt::Key_AltGr,Qt::ControlModifier | Qt::AltModifier | Qt::GroupSwitchModifier,0x138,165,0);
+            QKeyEvent up(QEvent::KeyRelease,Qt::Key_AltGr,Qt::NoModifier,0x138,165,0);
+            QCoreApplication::sendEvent(win,&down); QCoreApplication::sendEvent(win,&up);
+            if (engine->draftKeys()!=QVariantList{165}) qFatal("Qt-only physical AltGr not selected as standalone");
+            click(win,"applyKeyboard");
+            if (engine->config().startChord!=QList<int>{165}) qFatal("AltGr standalone failed to apply");
+        });
+        at(8400, [=] { shot("altgr-standalone-applied"); click(win,"editStartBinding"); });
+        at(8600, [=] {
+            if (engine->draftKeys()!=QVariantList{165} || engine->captureCombination()) qFatal("AltGr lost after reopening");
+            shot("altgr-standalone-reopened"); click(win,"cancelKeyboard");
+        });
+        at(8800, [=] { click(win,"editStopBinding"); });
+        at(9000, [=] {
+            click(win,"keycap44"); click(win,"applyKeyboard");
+            if (engine->config().stopChord!=QList<int>{44} || engine->stopLabel()!="PrintScreen")
+                qFatal("PrintScreen mouse apply/name regression");
+        });
+        at(9200, [=] {
+            shot("printscreen-applied"); click(win,"editStopBinding");
+        });
+        at(9400, [=] {
+            if (engine->draftKeys()!=QVariantList{44}) qFatal("PrintScreen lost after reopening");
+            engine->processWindowsKey(16,0x2a,true,false,true,true,77); // fake PrintScreen Shift
+            engine->processWindowsKey(44,0x37,true,false,true,true,77);
+            engine->processWindowsKey(44,0x37,true,false,false,true,77);
+            engine->processWindowsKey(16,0x2a,true,false,false,true,77);
+            if (engine->draftKeys()!=QVariantList{44} || !engine->pressedKeys().isEmpty()) qFatal("PrintScreen packet selection changed identity");
+            shot("printscreen-reopened"); click(win,"applyKeyboard");
+        });
+        at(9600, [=] { click(win,"editStartBinding"); });
+        at(9800, [=] {
+            click(win,"combinationMode"); click(win,"keycap165"); click(win,"keycap72");
+            click(win,"applyKeyboard");
+            if (engine->config().startChord!=QList<int>({165,72})) qFatal("AltGr mouse chord failed apply");
+        });
+        at(10000, [=] { shot("altgr-chord-applied"); click(win,"editStartBinding"); });
+        at(10200, [=] {
+            if (engine->draftKeys()!=QVariantList({165,72}) || !engine->captureCombination()) qFatal("AltGr chord lost after reopening");
+            shot("altgr-chord-reopened"); click(win,"cancelKeyboard");
+        });
+        at(10400, [=] { click(win,"editStartBinding"); });
+        at(10600, [=] {
+            click(win,"singleMode"); click(win,"combinationMode");
+            engine->processWindowsKey(18,0x38,true,false,true,true,77);
+            QKeyEvent down(QEvent::KeyPress,Qt::Key_AltGr,Qt::ControlModifier | Qt::AltModifier,0x138,165,0);
+            QCoreApplication::sendEvent(win,&down);
+            if (engine->draftKeys()!=QVariantList{165} || engine->pressedKeys()!=QVariantList{165}) qFatal("Raw plus Qt AltGr selected twice");
+        });
+        at(10700, [=] { shot("altgr-dual-source-held"); });
+        at(10800, [=] {
+            engine->processWindowsKey(18,0x38,true,false,false,true,77);
+            QKeyEvent up(QEvent::KeyRelease,Qt::Key_AltGr,Qt::NoModifier,0x138,165,0);
+            QCoreApplication::sendEvent(win,&up);
+            if (!engine->pressedKeys().isEmpty() || engine->draftKeys()!=QVariantList{165}) qFatal("AltGr dual source release changed draft");
+            click(win,"applyKeyboard");
+            if (engine->config().startChord!=QList<int>{165}) qFatal("Dual-source AltGr apply failed");
+        });
+        at(11000, [=] {
+            shot("altgr-physical-capture-applied");
+            qInfo() << "NATIVE_KEYBOARD_UI_PASS (Tab, navigation, triple, Qt-only AltGr capture/apply/reopen, dual-source AltGr select-once/release/apply, mouse chord, PrintScreen, cancel)";
+            QCoreApplication::quit();
+        });
+        return;
+    }
+    if (QCoreApplication::arguments().contains("--capture-error")) {
+        at(600, [=] { shot("error"); });
+        at(850, [] {
+            qInfo() << "NATIVE_ERROR_CAPTURE_PASS";
+            QCoreApplication::quit();
+        });
+        return;
+    }
+    at(300, [=] { shot("startup"); });
+    at(650, [=] { shot("transition-mid"); });
+    at(800, [=] { shot("transition-flight"); });
+    at(1000, [=] { shot("transition"); });
+    at(1900, [=] { engine->setIntervalMs(5); });
+    at(2200, [=] {
+        shot("clicker");
+        if (engine->measuredCps() >= 0)
+            qFatal("Idle measured rate fabricated");
+    });
+    at(2300, [=] {
+        // Exercise the native segmented choices with actual key events, not clicks only.
+        for (const auto &pair : {qMakePair(QString("presetsFrame"), QStringList{"preset1", "preset10", "preset50", "preset200"}),
+                                 qMakePair(QString("mouseFrame"), QStringList{"mouse0", "mouse1", "mouse2"})}) {
+            auto *frame = find(win->contentItem(), pair.first);
+            if (!frame) qFatal("Missing segmented frame");
+            for (const auto &name : pair.second) {
+                auto *button = find(win->contentItem(), name);
+                if (!button || button->width() < 44 || button->height() < 44)
+                    qFatal("Segmented target below 44px");
+                const QPointF pos = button->mapToItem(frame, QPointF(0, 0));
+                if (pos.x() < 0 || pos.y() < 0 || pos.x() + button->width() > frame->width() + .1 ||
+                    pos.y() + button->height() > frame->height() + .1)
+                    qFatal("Segmented target clipped");
+            }
+        }
+        const auto sendKey = [=](int key) {
+            QKeyEvent press(QEvent::KeyPress, key, Qt::NoModifier);
+            QKeyEvent release(QEvent::KeyRelease, key, Qt::NoModifier);
+            QGuiApplication::sendEvent(win, &press);
+            QGuiApplication::sendEvent(win, &release);
+        };
+        find(win->contentItem(), "preset10")->forceActiveFocus();
+        sendKey(Qt::Key_Right);
+        if (!find(win->contentItem(), "preset50")->hasActiveFocus()) qFatal("Preset arrow navigation failed");
+        sendKey(Qt::Key_Space);
+        if (engine->intervalMs() != 20) qFatal("Preset keyboard activation failed");
+        click(win, "preset200");
+        find(win->contentItem(), "mouse0")->forceActiveFocus();
+        sendKey(Qt::Key_Right);
+        if (!find(win->contentItem(), "mouse1")->hasActiveFocus()) qFatal("Mouse choice arrow navigation failed");
+        sendKey(Qt::Key_Space);
+        if (engine->mouseButton() != 1) qFatal("Mouse choice keyboard activation failed");
+        click(win, "mouse0");
+        auto *start = find(win->contentItem(), "startButton");
+        if (!start || start->property("text").toString() != QStringLiteral("Запустить") ||
+            start->property("hint").isValid() || !start->property("tip").toString().isEmpty())
+            qFatal("Activation hint returned to the run button");
+        qInfo() << "NATIVE_CLEAN_UI_PASS (no Beta/profile/footer clutter, no activation badge or tooltip)";
+        qInfo() << "NATIVE_SEGMENTED_UI_PASS (44px targets, contained geometry, arrow focus, Space activation)";
+    });
+    at(2400, [=] { click(win, "nav1"); });
+    at(2800, [=] { shot("session"); });
+    at(3000, [=] { click(win, "nav2"); });
+    at(3400, [=] { shot("settings"); });
+    at(3600, [=] { click(win, "editStartBinding"); });
+    at(4000, [=] { shot("keyboard"); });
+    at(4200, [=] {
+        click(win, "combinationMode");
+        click(win, "keycap75");
+        click(win, "keycap162");
+    });
+    at(4600, [=] { shot("keyboard-selected"); });
+    at(4800, [=] {
+        click(win, "applyKeyboard");
+        if (engine->config().startChord != QList<int>({75,162}))
+            qFatal("Binding not applied");
+    });
+    at(5000, [=] { shot("binding-saved"); });
+    at(5200, [=] { click(win, "nav3"); });
+    at(5400, [=] { click(win, "saveConfig"); });
+    at(5600, [=] { shot("config-save"); });
+    at(5800, [=] {
+        auto *field = find(win->contentItem(), "profileNameField");
+        if (!field)
+            qFatal("Missing name field");
+        field->setProperty("text", QString::fromUtf8("Тест · 200 / с"));
+        click(win, "confirmSaveConfig");
+        if (configs->profiles().isEmpty())
+            qFatal("Profile not saved");
+    });
+    at(6200, [=] {
+        auto id = configs->profiles()[0].toMap()["id"].toString();
+        click(win, "profile_" + id);
+    });
+    at(6400, [=] { shot("configs"); });
+    at(6600, [=] { click(win, "deleteConfig"); });
+    at(6800, [=] { shot("config-delete"); });
+    at(7000, [=] {
+        click(win, "confirmDeleteConfig");
+        if (!configs->profiles().isEmpty())
+            qFatal("Profile not deleted");
+    });
+    at(7200, [=] { click(win, "nav0"); });
+    at(7400, [=] { click(win, "limitsButton"); });
+    at(7800, [=] { shot("limits"); });
+    at(8000, [=] { engine->setCountLimit(200); });
+    at(8200, [=] { shot("limits-count"); });
+    at(8400, [=] {
+        auto *popup = win->findChild<QObject *>("limitsPopup");
+        if (!popup || !QMetaObject::invokeMethod(popup, "close"))
+            qFatal("Missing limits popup");
+    });
+    at(8600, [=] { click(win, "nav2"); });
+    at(8800, [=] { click(win, "resetBindings"); });
+    at(9000, [=] {
+        if (engine->startKey() != 117 || engine->stopKey() != 119)
+            qFatal("Reset bindings failed");
+    });
+    at(9400, [=] {
+        click(win, "addStartBinding");
+    });
+    at(9700, [=] {
+        click(win, "keycap76");
+        click(win, "applyKeyboard");
+        if (engine->startBindings().size() != 2)
+            qFatal("Second start binding not appended");
+    });
+    at(10000, [=] {
+        shot("multi-bindings");
+        click(win, "addStopBinding");
+    });
+    at(10300, [=] {
+        click(win, "keycap76");
+        click(win, "applyKeyboard");
+    });
+    at(10600, [=] {
+        shot("binding-conflict");
+        if (engine->stopBindings().size() != 1 || engine->draftError().isEmpty() || !engine->error().isEmpty())
+            qFatal("Conflict changed bindings or leaked to general banner");
+        auto *popup = win->findChild<QObject *>("keyboardPicker");
+        if (!popup || !QMetaObject::invokeMethod(popup, "close"))
+            qFatal("Missing keyboard popup");
+    });
+    at(10900, [=] {
+        if (!engine->draftError().isEmpty() || !engine->error().isEmpty()) qFatal("Cancel left conflict banner behind");
+        engine->applyBindings(0,0,119,0); // Exercise a genuine general API validation error.
+    });
+    at(11000, [=] {
+        auto *banner=find(win->contentItem(),"generalError");
+        if (!banner || !banner->isVisible() || engine->error().isEmpty()) qFatal("General error not shown");
+        shot("dismissible-error"); click(win,"dismissError");
+    });
+    at(11100, [=] {
+        if (!engine->error().isEmpty() || find(win->contentItem(),"generalError")->isVisible()) qFatal("Error dismissal failed");
+        engine->resetBindings();
+        shot("error-dismissed");
+        qInfo() << "NATIVE_ERROR_LIFECYCLE_PASS (local conflict, cancel clears, general error closes)";
+    });
+    at(11200, [=] {
+        for (int i = 1; i < 8; ++i) {
+            if (!engine->applyBindingSlot(false, i, 64 + i, 0) ||
+                !engine->applyBindingSlot(true, i, 71 + i, 0))
+                qFatal("Maximum binding fixture failed");
+        }
+    });
+    at(11600, [=] { shot("maximum-bindings"); });
+    at(11900, [=] {
+        if (!engine->removeBinding(false, 0) || engine->startKey() != 65)
+            qFatal("Primary promotion failed");
+        engine->resetBindings();
+        click(win, "nav3");
+    });
+    at(12200, [=] {
+        // Offscreen animation clocks can lag wall time under compiler load. Wait for
+        // the actual page transition, rather than blessing a blank captured frame.
+        auto *settled = new QTimer(win);
+        settled->setInterval(50);
+        QObject::connect(settled, &QTimer::timeout, win, [=, attempts = 0]() mutable {
+            if (++attempts > 40)
+                qFatal("Config page transition did not settle");
+            if (win->property("pagePhase").toReal() < 0.99)
+                return;
+            shot("empty-configs");
+            settled->stop();
+            qInfo() << "NATIVE_EXTENDED_UI_PASS (keyboard, modifiers, apply, reset, save, select, "
+                       "delete, limits, always-on animation, append, conflict, maximum bindings, "
+                       "promotion, settled page)";
+            QCoreApplication::quit();
+        });
+        settled->start();
+    });
+}

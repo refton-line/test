@@ -1,0 +1,224 @@
+{
+  "theme": "Clean / Red Black",
+  "contrast": [
+    {
+      "foreground": "ink",
+      "background": "canvas",
+      "ratio": 17.47,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "muted",
+      "background": "canvas",
+      "ratio": 9.71,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "focus",
+      "background": "canvas",
+      "ratio": 13.3,
+      "minimum": 3
+    },
+    {
+      "foreground": "controlBorder",
+      "background": "canvas",
+      "ratio": 5.4,
+      "minimum": 3
+    },
+    {
+      "foreground": "ink",
+      "background": "workspace",
+      "ratio": 17.16,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "muted",
+      "background": "workspace",
+      "ratio": 9.54,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "focus",
+      "background": "workspace",
+      "ratio": 13.06,
+      "minimum": 3
+    },
+    {
+      "foreground": "controlBorder",
+      "background": "workspace",
+      "ratio": 5.3,
+      "minimum": 3
+    },
+    {
+      "foreground": "ink",
+      "background": "rail",
+      "ratio": 17.68,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "muted",
+      "background": "rail",
+      "ratio": 9.82,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "focus",
+      "background": "rail",
+      "ratio": 13.46,
+      "minimum": 3
+    },
+    {
+      "foreground": "controlBorder",
+      "background": "rail",
+      "ratio": 5.46,
+      "minimum": 3
+    },
+    {
+      "foreground": "ink",
+      "background": "surface",
+      "ratio": 16.16,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "muted",
+      "background": "surface",
+      "ratio": 8.98,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "focus",
+      "background": "surface",
+      "ratio": 12.3,
+      "minimum": 3
+    },
+    {
+      "foreground": "controlBorder",
+      "background": "surface",
+      "ratio": 4.99,
+      "minimum": 3
+    },
+    {
+      "foreground": "ink",
+      "background": "surfaceRaised",
+      "ratio": 14.97,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "muted",
+      "background": "surfaceRaised",
+      "ratio": 8.32,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "focus",
+      "background": "surfaceRaised",
+      "ratio": 11.39,
+      "minimum": 3
+    },
+    {
+      "foreground": "controlBorder",
+      "background": "surfaceRaised",
+      "ratio": 4.62,
+      "minimum": 3
+    },
+    {
+      "foreground": "ink",
+      "background": "accentSoft",
+      "ratio": 14.78,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "muted",
+      "background": "accentSoft",
+      "ratio": 8.21,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "focus",
+      "background": "accentSoft",
+      "ratio": 11.25,
+      "minimum": 3
+    },
+    {
+      "foreground": "controlBorder",
+      "background": "accentSoft",
+      "ratio": 4.56,
+      "minimum": 3
+    },
+    {
+      "foreground": "accentInk",
+      "background": "accent",
+      "ratio": 8.2,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "accentInk",
+      "background": "accentHover",
+      "ratio": 6.63,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "accentInk",
+      "background": "primaryHint",
+      "ratio": 11.32,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "danger",
+      "background": "surface",
+      "ratio": 8.24,
+      "minimum": 4.5
+    },
+    {
+      "foreground": "focus",
+      "background": "accent",
+      "ratio": 6.01,
+      "minimum": 3
+    },
+    {
+      "foreground": "focus",
+      "background": "accentHover",
+      "ratio": 4.86,
+      "minimum": 3
+    },
+    {
+      "foreground": "brand",
+      "background": "canvas",
+      "ratio": 3.63,
+      "minimum": 3
+    },
+    {
+      "foreground": "brand",
+      "background": "workspace",
+      "ratio": 3.56,
+      "minimum": 3
+    },
+    {
+      "foreground": "brand",
+      "background": "rail",
+      "ratio": 3.67,
+      "minimum": 3
+    },
+    {
+      "foreground": "brand",
+      "background": "surface",
+      "ratio": 3.35,
+      "minimum": 3
+    },
+    {
+      "foreground": "brand",
+      "background": "surfaceRaised",
+      "ratio": 3.11,
+      "minimum": 3
+    },
+    {
+      "foreground": "brand",
+      "background": "accentSoft",
+      "ratio": 3.07,
+      "minimum": 3
+    }
+  ],
+  "icons_checked": 24,
+  "errors": [],
+  "note": "Disabled controls are exempt from AA; motion and native layout are verified by the capture harness."
+}

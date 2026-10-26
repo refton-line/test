@@ -1,0 +1,5 @@
+keys: NATIVE_KEYBOARD_UI_PASS (Tab, navigation, triple, Qt-only AltGr capture/apply/reopen, dual-source AltGr select-once/release/apply, mouse chord, PrintScreen, cancel);
+all: NATIVE_CLEAN_UI_PASS (no Beta/profile/footer clutter, no activation badge or tooltip);NATIVE_SEGMENTED_UI_PASS (44px targets, contained geometry, arrow focus, Space activation);NATIVE_ERROR_LIFECYCLE_PASS (local conflict, cancel clears, general error closes);NATIVE_EXTENDED_UI_PASS (keyboard, modifiers, apply, reset, save, select, delete, limits, always-on animation, append, conflict, maximum bindings, promotion, settled page);
+window: NATIVE_WINDOW_UI_PASS (fullscreen, work-area maximize, normal/maximized restore, resize, close stop);
+adaptive: NATIVE_ADAPTIVE_UI_PASS (150% scale, small work area, keyboard fit, maximize);
+error: NATIVE_ERROR_CAPTURE_PASS;
