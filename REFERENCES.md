@@ -47,3 +47,10 @@ RAWKEYBOARD stores E0/E1 in Flags separately from MakeCode: https://learn.micros
 
 ### Qt AltGr editor bridge (0.4.7)
 QKeyEvent exposes key(), nativeVirtualKey() and nativeScanCode(): https://doc.qt.io/qt-6/qkeyevent.html . The bridge accepts explicit Qt::Key_AltGr; only on Windows it also interprets right-Alt native metadata. Raw Input remains the background source. Tests cover bridge/merge behavior, not every Windows layout/driver's real delivery.
+
+## 0.5.0 click modes (October 26, 2026)
+- [OP Auto Clicker features](https://opautoclicker.io/features.html), 4.1 notes (read as text, no screenshots inspected): a base interval plus an optional "Random offset ±" millisecond field (100 ms ± 40 ms), mouse button choice and repeat-until-stopped/count. Applied: randomness as a first-class, opt-in parameter next to the interval (Custom ± %), button choice and limits kept as compact rows. Rejected: hours/minutes/seconds/ms field grid, which doesn't suit a CPS-oriented tool.
+- CPS ranges are the established control vocabulary of gaming auto-clickers. Applied as a two-handle range plus named presets instead of two separate numeric fields. No third-party UI or assets copied.
+- [Qt 6 RangeSlider](https://doc.qt.io/qt-6/qml-qtquick-controls-rangeslider.html): native two-handle control with keyboard support, restyled with Theme tokens.
+- Win32 [SendInput](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-sendinput) vs. posted [WM_LBUTTONDOWN](https://learn.microsoft.com/en-us/windows/win32/inputdev/wm-lbuttondown): SendInput enters the system input stream like a device, while posted messages reach only the target window's queue and do not update cursor/async button state. This split is the Legit / Blatant delivery difference.
+- Existing Linear / Raycast / Affinity notes above (progressive disclosure, compact header controls, mono numerals) informed placing the mode switch in the heading row and showing only that mode's controls.

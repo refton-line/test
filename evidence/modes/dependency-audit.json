@@ -1,0 +1,6 @@
+{
+  "PE_files_audited": 110,
+  "dependency_DLLs_copied": 49,
+  "unresolved_non_system_DLLs": [],
+  "note": "Static import audit, not proof of Windows runtime or delay-loaded system APIs."
+}

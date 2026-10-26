@@ -1,5 +1,6 @@
 #include "ConfigStore.h"
 #include "ClickController.h"
+#include "ClickPattern.h"
 #include <QDesktopServices>
 #include <QDir>
 #include <QFile>
@@ -9,6 +10,8 @@
 #include <QStandardPaths>
 #include <QUuid>
 namespace {
+// v4 adds the click-mode "pattern" block; v1–v3 still load (as the Custom mode).
+constexpr int ProfileVersion = 4;
 bool validName(const QString &name) {
     if (name.trimmed().isEmpty() || name.size() > 64)
         return false;
@@ -66,7 +69,9 @@ bool ConfigStore::read(const QString &path, QJsonObject &doc, ClickConfig &cfg,
     doc = d.object();
     if (doc.size() != 4 ||
         !((doc["format"] == "obsidian-click" && doc["version"].toDouble() == 1) ||
-          (doc["format"] == "c-clicker" && (doc["version"].toDouble() == 2 || doc["version"].toDouble() == 3))) ||
+          (doc["format"] == "c-clicker" && doc["version"].toDouble() == doc["version"].toInt() &&
+           doc["version"].toInt() >= 2 &&
+           doc["version"].toDouble() <= ProfileVersion)) ||
         !doc["version"].isDouble() || !doc["name"].isString() ||
         !validName(doc["name"].toString()) || !doc["settings"].isObject()) {
         error = "Неизвестная схема конфигурации.";
@@ -105,10 +110,11 @@ void ConfigStore::refresh() {
             {"id", f.fileName()},
             {"name", valid ? doc["name"].toString() : f.fileName()},
             {"valid", valid},
-            {"detail", valid ? QString::number(cfg.interval) + " мс · " +
+            {"detail", valid ? ClickPattern::describe(cfg) + " · " +
                                    Configuration::chordName({cfg.startKey, cfg.startMods, cfg.startChord}) +
                                    " / " + Configuration::chordName({cfg.stopKey, cfg.stopMods, cfg.stopChord})
                              : error},
+            {"summary", valid ? ClickPattern::describe(cfg) : error},
             {"active", m_activeId == f.fileName()}});
     }
     if (m_profiles != list) {
@@ -123,7 +129,7 @@ bool ConfigStore::saveNew(const QString &name) {
     const auto id = QUuid::createUuid().toString(QUuid::WithoutBraces) + ".json";
     const auto settings = Configuration::encode(m_engine->config());
     if (!write(safePath(id), {{"format", "c-clicker"},
-                              {"version", 3},
+                              {"version", ProfileVersion},
                               {"name", name.trimmed()},
                               {"settings", settings}}))
         return finish(false, "Не удалось сохранить JSON.");
@@ -141,7 +147,7 @@ bool ConfigStore::duplicate(const QString &id) {
         return finish(false, "Не удалось прочитать конфигурацию.");
     doc["name"] = doc["name"].toString().left(55) + " · копия";
     doc["format"] = "c-clicker";
-    doc["version"] = 3;
+    doc["version"] = ProfileVersion;
     doc["settings"] = Configuration::encode(cfg);
     const auto fresh = QUuid::createUuid().toString(QUuid::WithoutBraces) + ".json";
     const bool ok = write(safePath(fresh), doc);
@@ -198,7 +204,7 @@ bool ConfigStore::importFile(const QUrl &url) {
         return finish(false, error);
     const auto id = QUuid::createUuid().toString(QUuid::WithoutBraces) + ".json";
     doc["format"] = "c-clicker";
-    doc["version"] = 3;
+    doc["version"] = ProfileVersion;
     doc["settings"] = Configuration::encode(cfg);
     const bool ok = write(safePath(id), doc);
     return finish(ok, ok ? "Импорт JSON завершён. Для загрузки нажмите «Применить»."

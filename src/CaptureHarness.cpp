@@ -123,6 +123,40 @@ void runCaptureHarness(QQuickWindow *win, const QString &output, ClickController
         });
         return;
     }
+    if (QCoreApplication::arguments().contains("--capture-mode-tests")) {
+        at(1700, [=] {
+            if (engine->clickMode() != 0 || !find(win->contentItem(), "legitBody")->isVisible())
+                qFatal("Fresh profile is not Legit");
+            click(win, "legitPreset2");
+        });
+        at(2000, [=] {
+            if (engine->cpsMin() != 13 || engine->cpsMax() != 17) qFatal("Legit preset did not apply");
+            shot("mode-legit");
+            click(win, "legitPreset1");
+            click(win, "mode2");
+            engine->setIntervalMs(80); engine->setJitterPct(25); engine->setHoldMs(18); engine->setDrift(true);
+        });
+        at(2400, [=] {
+            if (engine->clickMode() != 2 || !find(win->contentItem(), "customBody")->isVisible())
+                qFatal("Custom mode click failed");
+            shot("mode-custom");
+            engine->setJitterPct(0); engine->setDrift(false); engine->setHoldMs(1);
+            click(win, "mode1");
+            engine->setIntervalMs(2);
+        });
+        at(2800, [=] {
+            if (engine->clickMode() != 1 || engine->intervalMs() != 2 ||
+                !find(win->contentItem(), "blatantBody")->isVisible())
+                qFatal("Blatant mode click failed");
+            shot("mode-blatant");
+            click(win, "mode0");
+            if (engine->clickMode() != 0 || engine->intervalMs() != 5)
+                qFatal("Leaving Blatant did not restore the 5 ms floor");
+            qInfo() << "NATIVE_MODE_UI_PASS (legit preset, custom recipe, blatant floor, mode return)";
+            QCoreApplication::quit();
+        });
+        return;
+    }
     if (QCoreApplication::arguments().contains("--capture-adaptive-tests")) {
         at(1600, [=] {
             const QRect available = win->screen()->availableGeometry();
@@ -391,10 +425,13 @@ void runCaptureHarness(QQuickWindow *win, const QString &output, ClickController
         shot("clicker");
         if (engine->measuredCps() >= 0)
             qFatal("Idle measured rate fabricated");
+        if (engine->clickMode() != 0) qFatal("Fresh profile is not Legit");
+        click(win, "mode1");
     });
     at(2300, [=] {
         // Exercise the native segmented choices with actual key events, not clicks only.
-        for (const auto &pair : {qMakePair(QString("presetsFrame"), QStringList{"preset1", "preset10", "preset50", "preset200"}),
+        for (const auto &pair : {qMakePair(QString("presetsFrame"), QStringList{"preset10", "preset50", "preset100", "preset200", "preset500"}),
+                                 qMakePair(QString("modeFrame"), QStringList{"mode0", "mode1", "mode2"}),
                                  qMakePair(QString("mouseFrame"), QStringList{"mouse0", "mouse1", "mouse2"})}) {
             auto *frame = find(win->contentItem(), pair.first);
             if (!frame) qFatal("Missing segmented frame");
@@ -426,6 +463,8 @@ void runCaptureHarness(QQuickWindow *win, const QString &output, ClickController
         sendKey(Qt::Key_Space);
         if (engine->mouseButton() != 1) qFatal("Mouse choice keyboard activation failed");
         click(win, "mouse0");
+        click(win, "mode0");
+        if (engine->clickMode() != 0 || engine->intervalMs() < 5) qFatal("Return to Legit failed");
         auto *start = find(win->contentItem(), "startButton");
         if (!start || start->property("text").toString() != QStringLiteral("Запустить") ||
             start->property("hint").isValid() || !start->property("tip").toString().isEmpty())

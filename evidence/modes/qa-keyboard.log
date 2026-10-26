@@ -1,0 +1,1 @@
+NATIVE_KEYBOARD_UI_PASS (Tab, navigation, triple, Qt-only AltGr capture/apply/reopen, dual-source AltGr select-once/release/apply, mouse chord, PrintScreen, cancel)

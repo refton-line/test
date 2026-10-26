@@ -1,4 +1,12 @@
-# C clicker 0.4.7 AltGrCapture: QA
+# C clicker 0.5.0 Modes: QA
+
+## Current 0.5.0 click modes
+711 controller/config/timing assertions pass (642 retained, one updated: profile envelope version 3 → 4, because v4 adds the pattern block). New checks: Legit default and CPS range setters/validation; Blatant 1 ms floor and snap back to 5 ms on leaving; Custom jitter/delivery/drift bounds; pattern JSON round trip for all modes, malformed pattern rejection, 0.4.7 JSON loading as Custom with the exact fixed-grid SendInput plan; v4 profile save/apply/reload, v3 import, fractional envelope version rejected. Generator statistics over 20 000 steps: Legit mean CPS inside the range, gap CV 0.06–0.35, >95 % distinct gaps, hold always < gap and 30–55 % of the cycle, tempo drift between 50-click windows, 0.4–3 % micro-pauses, 30 CPS edge case; Blatant exact gaps; Custom ±20 % bounds and unbiased mean, ±12 % wave, extreme 5 ms / 50 % jitter never yields hold ≥ gap; seed determinism.
+
+Native captures, all passing on Linux offscreen/software Qt 6.8.3: general (`NATIVE_CLEAN_UI_PASS`, `NATIVE_SEGMENTED_UI_PASS` now also checks the mode switch, `NATIVE_ERROR_LIFECYCLE_PASS`, `NATIVE_EXTENDED_UI_PASS`), new `--capture-mode-tests` (`NATIVE_MODE_UI_PASS`: Legit preset, Custom recipe, Blatant 2 ms, return to Legit restores the 5 ms floor), window, keyboard, error, adaptive at QT_SCALE_FACTOR=1.5. Previews regenerated, incl. mode-legit/mode-blatant/mode-custom.png.
+
+Not verified here: actual SendInput/PostMessage delivery on Windows, and which target programs accept posted window messages. The Windows EXE is cross-built with MinGW, not run.
+
 
 ## Current 0.4.7 physical AltGr capture
 The Windows editor previously consumed Qt key events without selecting keys, relying exclusively on Raw Input. The new editor-only bridge accepts explicit Qt AltGr and, on Windows, Qt Alt with VK_RMENU / extended right-Alt scan metadata. It does not infer keys from modifier masks. Outside the editor Qt input is unchanged; background matching is still Raw Input only.

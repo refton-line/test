@@ -1,5 +1,6 @@
 #include "ClickController.h"
 #include "Timing.h"
+#include "ClickPattern.h"
 #include <QClipboard>
 #include <QDateTime>
 #include <QGuiApplication>
@@ -24,6 +25,9 @@ ClickController::ClickController(QObject *parent) : QObject(parent) {
         else
             m_error = "Сохранённые параметры отклонены: " + error;
     } else {
+        // Pre-JSON settings were the fixed-interval engine; keep it for those users.
+        if (s.contains("click/interval"))
+            m_config.mode = CustomMode;
         m_config.interval = qBound(5, s.value("click/interval", 100).toInt(), 10000);
         m_config.duration = qBound(0, s.value("click/duration", 0).toInt(), 3600);
         m_config.button = qBound(0, s.value("click/button", 0).toInt(), 1);
@@ -116,7 +120,7 @@ void ClickController::setLaunchDelaySec(int v) {
 void ClickController::setIntervalMs(int v) {
     auto c = m_config;
     c.interval = v;
-    if (v >= 5 && v <= 10000)
+    if (v >= Configuration::minInterval(c.mode) && v <= 10000)
         c.hold = qMin(c.hold, v - 1);
     applyConfig(c);
 }
@@ -139,6 +143,51 @@ void ClickController::setCountLimit(qulonglong v) {
     auto c = m_config;
     c.countLimit = v;
     applyConfig(c);
+}
+void ClickController::setClickMode(int v) {
+    auto c = m_config;
+    c.mode = v;
+    // Leaving Blatant may strand a sub-5 ms interval; snap it to the new floor.
+    if (v >= LegitMode && v <= CustomMode && c.interval < Configuration::minInterval(v)) {
+        c.interval = Configuration::minInterval(v);
+        c.hold = qMin(c.hold, c.interval - 1);
+    }
+    applyConfig(c);
+}
+void ClickController::setCpsMin(int v) {
+    setCpsRange(v, qMax(v, m_config.cpsMax));
+}
+void ClickController::setCpsMax(int v) {
+    setCpsRange(qMin(v, m_config.cpsMin), v);
+}
+bool ClickController::setCpsRange(int min, int max) {
+    auto c = m_config;
+    c.cpsMin = min;
+    c.cpsMax = max;
+    return applyConfig(c);
+}
+void ClickController::setJitterPct(int v) {
+    auto c = m_config;
+    c.jitter = v;
+    applyConfig(c);
+}
+void ClickController::setDelivery(int v) {
+    auto c = m_config;
+    c.delivery = v;
+    applyConfig(c);
+}
+void ClickController::setDrift(bool v) {
+    auto c = m_config;
+    c.drift = v;
+    applyConfig(c);
+}
+double ClickController::expectedCps() const { return ClickPattern::expectedCps(m_config); }
+QString ClickController::modeSummary() const { return ClickPattern::describe(m_config); }
+QVariantList ClickController::rhythmPreview() const {
+    QVariantList list;
+    for (double gap : ClickPattern::preview(m_config, 48))
+        list.append(gap);
+    return list;
 }
 double ClickController::elapsedSec() const {
     const auto b = m_beginNs.load();
@@ -211,7 +260,7 @@ void ClickController::launch() {
         return;
     m_state = "Работает";
     m_poll.start();
-    record("Запуск: " + QString::number(m_config.interval) + " мс");
+    record("Запуск: " + ClickPattern::describe(m_config));
     m_task = QtConcurrent::run([this] { runWorker(); });
 }
 void ClickController::stop() {

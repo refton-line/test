@@ -29,8 +29,13 @@ QList<KeyBinding> bindings(const ClickConfig &c, bool stop) {
     list.prepend(stop ? KeyBinding{c.stopKey, c.stopMods, c.stopChord} : KeyBinding{c.startKey, c.startMods, c.startChord});
     return list;
 }
+int minInterval(int mode) { return mode == BlatantMode ? 1 : 5; }
 QString validate(const ClickConfig &c) {
-    if (c.interval < 5 || c.interval > 10000 || c.duration < 0 || c.duration > 3600 ||
+    if (c.mode < LegitMode || c.mode > CustomMode || c.cpsMin < 1 || c.cpsMax > 30 ||
+        c.cpsMin > c.cpsMax || c.jitter < 0 || c.jitter > 50 || c.delivery < EmulatedDelivery ||
+        c.delivery > MessageDelivery)
+        return "Параметры режима вне диапазона: КПС 1–30, разброс 0–50 %.";
+    if (c.interval < minInterval(c.mode) || c.interval > 10000 || c.duration < 0 || c.duration > 3600 ||
         c.button < 0 || c.button > 2 || c.hold < 0 || c.hold > 100 || c.hold >= c.interval ||
         c.countLimit > 1000000000ULL || c.launchDelay < 1 || c.launchDelay > 10)
         return "Параметры вне диапазона. Удержание должно быть короче интервала.";
@@ -115,9 +120,34 @@ QJsonObject encode(const ClickConfig &c) {
         for (int k : c.stopChord) stop.append(k);
         result["startChord"] = start; result["stopChord"] = stop;
     }
+    result["pattern"] = QJsonObject{{"mode", c.mode},       {"cpsMin", c.cpsMin},
+                                    {"cpsMax", c.cpsMax},   {"jitterPct", c.jitter},
+                                    {"delivery", c.delivery}, {"drift", c.drift}};
     return result;
 }
-bool decode(const QJsonObject &o, ClickConfig &out, QString &error) {
+bool decode(const QJsonObject &input, ClickConfig &out, QString &error) {
+    QJsonObject o = input;
+    ClickConfig c;
+    c.mode = CustomMode;
+    if (o.contains("pattern")) {
+        const auto value = o.take("pattern");
+        const auto p = value.toObject();
+        const QStringList ints = {"mode", "cpsMin", "cpsMax", "jitterPct", "delivery"};
+        bool ok = value.isObject() && p.size() == 6 && p["drift"].isBool();
+        for (const auto &k : ints)
+            ok = ok && p[k].isDouble() && std::isfinite(p[k].toDouble()) &&
+                 p[k].toDouble() == p[k].toInt();
+        if (!ok) {
+            error = "Некорректный блок режима кликов.";
+            return false;
+        }
+        c.mode = p["mode"].toInt();
+        c.cpsMin = p["cpsMin"].toInt();
+        c.cpsMax = p["cpsMax"].toInt();
+        c.jitter = p["jitterPct"].toInt();
+        c.delivery = p["delivery"].toInt();
+        c.drift = p["drift"].toBool();
+    }
     const QStringList fields = {"intervalMs", "durationSec", "mouseButton", "holdMs",  "countLimit",
                                 "startKey",   "startMods",   "stopKey",     "stopMods"};
     if (o.size() != fields.size() && o.size() != fields.size() + 3 && o.size() != fields.size() + 5) {
@@ -143,7 +173,6 @@ bool decode(const QJsonObject &o, ClickConfig &out, QString &error) {
             error = "Параметр должен быть целым числом: " + k;
             return false;
         }
-    ClickConfig c;
     c.interval = o["intervalMs"].toInt();
     c.duration = o["durationSec"].toInt();
     c.button = o["mouseButton"].toInt();

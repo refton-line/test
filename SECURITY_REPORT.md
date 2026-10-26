@@ -1,8 +1,11 @@
-# Incremental security review · 0.4.7 AltGrCapture
+# Incremental security review · 0.5.0 Modes
 
 Manual source review and automated native functional tests, not an independent security audit or penetration test. Windows-only input paths were cross-compiled, not executed here.
 
-## Current AltGr capture bridge
+## Current 0.5.0 click modes
+Blatant and Custom → Сообщения post `WM_*BUTTONDOWN/UP` with `PostMessageW` only to the window under the cursor, after the unchanged checks: the target must still be the foreground window chosen during the countdown (same process/thread), the cursor must be inside it, and the button must not already be held at start. No cross-process injection beyond window messages, no hooks, no new privileges, no cursor movement. Legit and Custom → Эмуляция keep the existing `SendInput` path. A down is always followed by an up, including on cancel. The profile `pattern` block is strictly validated (exact keys, integer/bool types, ranges) before use; unknown keys and fractional envelope versions are rejected. The random generator only shapes timing and is seeded per run from `QRandomGenerator::system()`.
+
+## Retained AltGr capture bridge
 The Qt right-Alt bridge runs only while the binding picker is active. It uses explicit identity/native right-side metadata, never the Ctrl/Alt modifier mask. Events from Raw Input and Qt are merged for one editor selection edge; source-local releases and editor deactivation clean up held feedback. No global hook, keyboard injection, extra background collection, telemetry or filesystem permission change. Background Raw Input matcher and all reserved-key validation remain unchanged. Deterministic tests do not certify real Windows event delivery.
 
 ## Retained Tab fix

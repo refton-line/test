@@ -1,0 +1,4 @@
+NATIVE_CLEAN_UI_PASS (no Beta/profile/footer clutter, no activation badge or tooltip)
+NATIVE_SEGMENTED_UI_PASS (44px targets, contained geometry, arrow focus, Space activation)
+NATIVE_ERROR_LIFECYCLE_PASS (local conflict, cancel clears, general error closes)
+NATIVE_EXTENDED_UI_PASS (keyboard, modifiers, apply, reset, save, select, delete, limits, always-on animation, append, conflict, maximum bindings, promotion, settled page)

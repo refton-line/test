@@ -11,6 +11,21 @@ Item {
         border.color: Theme.hairline
     }
     Label { text: "Сессия"; font.pixelSize: 18; font.weight: Font.DemiBold }
+    Rectangle {
+        objectName: "modeChip"
+        anchors.right: parent.right
+        y: 1
+        width: chipText.implicitWidth + 16; height: 24
+        radius: Theme.radiusSmall
+        color: panel.engine.clickMode === 1 ? Theme.accent : Theme.surfaceRaised
+        Label {
+            id: chipText
+            anchors.centerIn: parent
+            text: ["ЛЕГИТ", "БЛАТАНТ", "СВОЙ"][panel.engine.clickMode] || ""
+            font.pixelSize: 11; font.weight: Font.DemiBold; font.letterSpacing: 0.8
+            color: Theme.accentInk
+        }
+    }
     Row {
         y: 48; spacing: 8
         Rectangle {
@@ -28,6 +43,12 @@ Item {
         }
     }
     Label { y: 96; text: "Отправка / с"; color: Theme.muted; font.pixelSize: 14 }
+    Label {
+        objectName: "targetRate"
+        y: 96; anchors.right: parent.right
+        text: "цель " + panel.engine.expectedCps.toLocaleString(Qt.locale("ru_RU"), 'f', panel.engine.expectedCps < 100 ? 1 : 0)
+        color: Theme.muted; font.family: Theme.mono; font.pixelSize: 12
+    }
     Label {
         y: 124; width: parent.width; height: 56
         text: panel.engine.measuredCps < 0 ? "—" : panel.engine.measuredCps.toLocaleString(Qt.locale("ru_RU"), 'f', 1)

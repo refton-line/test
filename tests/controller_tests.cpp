@@ -2,6 +2,8 @@
 #include "ConfigStore.h"
 #include "Timing.h"
 #include "PhysicalKeyboard.h"
+#include "ClickPattern.h"
+#include <cmath>
 #include <QDebug>
 #include <QFile>
 #include <QGuiApplication>
@@ -611,8 +613,8 @@ int main(int argc, char **argv) {
     check(tripleFile.open(QIODevice::ReadOnly), "read saved triple envelope");
     const auto tripleBytes = tripleFile.readAll();
     tripleFile.close();
-    check(QJsonDocument::fromJson(tripleBytes).object()["version"].toInt() == 3,
-          "physical triple uses version 3 envelope");
+    check(QJsonDocument::fromJson(tripleBytes).object()["version"].toInt() == 4,
+          "physical triple uses version 4 envelope");
     check(e.resetBindings() && store.apply(tripleId), "apply saved triple after reset");
     check(e.config().startChord == QList<int>({72, 89, 163}), "saved side-specific triple round trip");
     const QUrl tripleExport = QUrl::fromLocalFile(temp.path() + "/triple-export.json");
@@ -622,6 +624,276 @@ int main(int argc, char **argv) {
       check(loadedTriple.config().startChord == QList<int>({72, 89, 163}),
             "persist explicit triple through settings reload"); }
     check(e.resetBindings(), "restore defaults after triple persistence");
+    {
+        // ---- 0.5.0 click modes: Legit / Blatant / Custom ----
+        QSettings().clear();
+        ClickController m;
+        check(m.clickMode() == LegitMode && m.cpsMin() == 9 && m.cpsMax() == 13,
+              "fresh install defaults to Legit 9-13 CPS");
+        check(m.modeSummary() == QStringLiteral("Легит · 9–13 КПС"), "legit summary");
+        check(m.rhythmPreview().size() == 48, "rhythm preview has 48 planned gaps");
+        check(qAbs(m.expectedCps() - 11) < 1e-9, "legit expected CPS is the range centre");
+        check(m.setCpsRange(12, 16) && m.cpsMin() == 12 && m.cpsMax() == 16, "set CPS range");
+        check(!m.setCpsRange(16, 12) && m.cpsMin() == 12, "inverted CPS range rejected");
+        check(!m.setCpsRange(0, 5) && !m.setCpsRange(5, 31), "CPS outside 1-30 rejected");
+        m.setCpsMin(20);
+        check(m.cpsMin() == 20 && m.cpsMax() == 20, "raising min pushes max");
+        m.setCpsMax(4);
+        check(m.cpsMin() == 4 && m.cpsMax() == 4, "lowering max pulls min");
+        check(m.modeSummary() == QStringLiteral("Легит · 4 КПС"), "single-value legit summary");
+        m.setCpsRange(9, 13);
+        m.setIntervalMs(1);
+        check(m.intervalMs() != 1 && m.minIntervalMs() == 5, "legit keeps the 5 ms floor");
+        m.setClickMode(BlatantMode);
+        check(m.clickMode() == BlatantMode && m.minIntervalMs() == 1, "blatant mode floor 1 ms");
+        m.setIntervalMs(1);
+        check(m.intervalMs() == 1 && m.holdMs() == 0, "blatant 1 ms clamps hold to zero");
+        check(qAbs(m.expectedCps() - 1000) < 1e-9, "blatant expected CPS");
+        m.setClickMode(CustomMode);
+        check(m.clickMode() == CustomMode && m.intervalMs() == 5, "leaving blatant snaps interval");
+        m.setClickMode(3);
+        check(m.clickMode() == CustomMode, "unknown mode rejected");
+        m.setJitterPct(50);
+        check(m.jitterPct() == 50, "jitter 50 accepted");
+        m.setJitterPct(51);
+        check(m.jitterPct() == 50, "jitter 51 rejected");
+        m.setDelivery(MessageDelivery);
+        check(m.delivery() == MessageDelivery, "message delivery");
+        m.setDelivery(2);
+        check(m.delivery() == MessageDelivery, "unknown delivery rejected");
+        m.setDrift(true);
+        check(m.drift(), "drift toggle");
+        check(m.modeSummary() == QStringLiteral("Свой · 5 мс ±50 % · волна · сообщения"),
+              "custom summary");
+
+        // JSON: pattern block round trip and legacy compatibility.
+        QString why;
+        ClickConfig back;
+        auto json = Configuration::encode(m.config());
+        check(json["pattern"].isObject() && json["pattern"].toObject().size() == 6,
+              "pattern block encoded");
+        check(Configuration::decode(json, back, why) && back.mode == CustomMode &&
+                  back.jitter == 50 && back.delivery == MessageDelivery && back.drift,
+              "custom pattern round trip");
+        for (int mode : {LegitMode, BlatantMode}) {
+            auto cfg = m.config();
+            cfg.mode = mode;
+            check(Configuration::decode(Configuration::encode(cfg), back, why) && back.mode == mode,
+                  "mode round trip");
+        }
+        auto legacyJson = json;
+        legacyJson.remove("pattern");
+        check(Configuration::decode(legacyJson, back, why) && back.mode == CustomMode &&
+                  back.jitter == 0 && back.delivery == EmulatedDelivery && !back.drift,
+              "0.4.7 JSON loads as Custom");
+        const auto legacyPlan = ClickPattern::plan(back);
+        check(legacyPlan.fixed && !legacyPlan.messages,
+              "legacy plan is the 0.4.7 fixed-grid SendInput engine");
+        auto bad = [&](const char *key, const QJsonValue &value) {
+            auto broken = json;
+            auto pattern = broken["pattern"].toObject();
+            if (value.isUndefined())
+                pattern.remove(key);
+            else
+                pattern[key] = value;
+            broken["pattern"] = pattern;
+            return !Configuration::decode(broken, back, why);
+        };
+        check(bad("mode", QJsonValue::Undefined), "pattern missing key rejected");
+        check(bad("drift", 1), "pattern drift must be bool");
+        check(bad("cpsMin", 9.5), "pattern fractional CPS rejected");
+        check(bad("cpsMin", 20) && bad("cpsMax", 31), "pattern CPS range validated");
+        check(bad("extra", 1), "pattern unknown key rejected");
+        check(bad("mode", 7) && bad("delivery", -1), "pattern enums validated");
+        auto notObject = json;
+        notObject["pattern"] = 3;
+        check(!Configuration::decode(notObject, back, why), "pattern must be an object");
+
+        // Profiles: v4 envelope, mode in the list, v3 file still loads.
+        ConfigStore modes(&m);
+        m.setClickMode(LegitMode);
+        m.setCpsRange(10, 14);
+        check(modes.saveNew("Legit profile"), "save legit profile");
+        QString legitId;
+        for (const auto &row : modes.profiles())
+            if (row.toMap()["name"] == "Legit profile") {
+                legitId = row.toMap()["id"].toString();
+                check(row.toMap()["detail"].toString().startsWith(QStringLiteral("Легит · 10–14 КПС")),
+                      "profile detail shows mode");
+                check(row.toMap()["summary"].toString() == QStringLiteral("Легит · 10–14 КПС"),
+                      "profile summary is the full mode description");
+            }
+        QFile legitFile(modes.directory() + "/" + legitId);
+        check(legitFile.open(QIODevice::ReadOnly), "read legit profile");
+        const auto legitDoc = QJsonDocument::fromJson(legitFile.readAll()).object();
+        legitFile.close();
+        check(legitDoc["version"].toInt() == 4 &&
+                  legitDoc["settings"].toObject()["pattern"].toObject()["cpsMin"].toInt() == 10,
+              "legit profile stored as v4 with pattern");
+        m.setClickMode(BlatantMode);
+        check(modes.apply(legitId) && m.clickMode() == LegitMode && m.cpsMax() == 14,
+              "apply restores legit mode");
+        QFile v3(temp.path() + "/v3.json");
+        check(v3.open(QIODevice::WriteOnly), "write v3 profile");
+        v3.write(QJsonDocument(QJsonObject{{"format", "c-clicker"},
+                                           {"version", 3},
+                                           {"name", "Old v3"},
+                                           {"settings", legacyJson}})
+                     .toJson());
+        v3.close();
+        check(modes.importFile(QUrl::fromLocalFile(v3.fileName())), "v3 profile still imports");
+        QFile badVersion(temp.path() + "/v35.json");
+        check(badVersion.open(QIODevice::WriteOnly), "write fractional version");
+        badVersion.write(QJsonDocument(QJsonObject{{"format", "c-clicker"},
+                                                   {"version", 3.5},
+                                                   {"name", "Bad"},
+                                                   {"settings", json}})
+                             .toJson());
+        badVersion.close();
+        check(!modes.importFile(QUrl::fromLocalFile(badVersion.fileName())),
+              "fractional envelope version rejected");
+        { ClickController reloaded;
+          check(reloaded.clickMode() == LegitMode && reloaded.cpsMin() == 10,
+                "mode persists through settings reload"); }
+
+        // Generator: Legit is human-like, bounded and seed-deterministic.
+        ClickConfig legit;
+        legit.mode = LegitMode;
+        legit.cpsMin = 9;
+        legit.cpsMax = 13;
+        auto legitPlan = ClickPattern::plan(legit);
+        check(!legitPlan.fixed && !legitPlan.messages, "legit uses SendInput emulation, variable");
+        {
+            ClickPattern::Generator a(legitPlan, 42), b(legitPlan, 42), other(legitPlan, 43);
+            bool same = true, differs = false;
+            for (int i = 0; i < 200; ++i) {
+                const auto x = a.next(), y = b.next(), z = other.next();
+                same &= x.gapNs == y.gapNs && x.holdNs == y.holdNs;
+                differs |= x.gapNs != z.gapNs;
+            }
+            check(same, "same seed reproduces the rhythm");
+            check(differs, "different seeds differ");
+        }
+        auto stats = [&](const ClickConfig &cfg, quint64 seed, int n, auto &&perStep) {
+            ClickPattern::Generator g(ClickPattern::plan(cfg), seed);
+            double sum = 0, sq = 0;
+            QSet<qint64> distinct;
+            QList<double> gaps;
+            for (int i = 0; i < n; ++i) {
+                const auto st = g.next();
+                perStep(st);
+                const double ms = st.gapNs / 1e6;
+                sum += ms;
+                sq += ms * ms;
+                distinct.insert(st.gapNs);
+                gaps.append(ms);
+            }
+            const double mean = sum / n;
+            return std::tuple{mean, std::sqrt(qMax(0.0, sq / n - mean * mean)) / mean,
+                              distinct.size(), gaps};
+        };
+        bool holdsOk = true, gapsBounded = true;
+        double holdShare = 0;
+        const int samples = 20000;
+        auto [legitMean, legitCv, legitDistinct, legitGaps] =
+            stats(legit, 7, samples, [&](const ClickPattern::Step &st) {
+                holdsOk &= st.holdNs > 0 && st.holdNs < st.gapNs;
+                holdShare += double(st.holdNs) / double(st.gapNs);
+                const double ms = st.gapNs / 1e6;
+                gapsBounded &= ms >= 1000.0 / (13 * 1.2) - 1e-6 && ms <= 1000.0 / (9 * 0.8) + 110;
+            });
+        const double legitCps = 1000.0 / legitMean;
+        check(legitCps >= 9 && legitCps <= 13, "legit mean CPS stays inside the range");
+        check(legitCv > 0.06 && legitCv < 0.35, "legit gaps vary like a human, not wildly");
+        check(legitDistinct > samples * 0.95, "legit gaps are practically never repeated");
+        check(holdsOk, "legit hold is always shorter than its gap");
+        check(gapsBounded, "legit gaps bounded by range and micro-pauses");
+        holdShare /= samples;
+        check(holdShare > 0.3 && holdShare < 0.55, "legit hold is about a third to half of a cycle");
+        {
+            // The tempo wanders: 50-click windows do not all average the same.
+            double lo = 1e9, hi = 0;
+            for (int i = 0; i + 50 <= legitGaps.size(); i += 50) {
+                double w = 0;
+                for (int j = i; j < i + 50; ++j) w += legitGaps[j];
+                lo = qMin(lo, 50000.0 / w);
+                hi = qMax(hi, 50000.0 / w);
+            }
+            check(hi - lo > 0.5, "legit tempo drifts between windows");
+            int pauses = 0;
+            for (double ms : legitGaps) pauses += ms > 1000.0 / (9 * 0.8) + 1;
+            check(pauses > samples * 0.004 && pauses < samples * 0.03, "rare legit micro-pauses");
+        }
+        ClickConfig fast = legit;
+        fast.cpsMin = fast.cpsMax = 30;
+        bool fastHolds = true;
+        auto [fastMean, fastCv, fastDistinct, fastGaps] =
+            stats(fast, 9, 5000, [&](const ClickPattern::Step &st) {
+                fastHolds &= st.holdNs >= 5000000 && st.holdNs < st.gapNs &&
+                             st.gapNs >= qint64(1e9 / 36) - 1;
+            });
+        check(fastHolds, "30 CPS legit keeps valid holds and gap floor");
+        check(qAbs(1000.0 / fastMean - 30) < 30 * 0.08, "fixed-value legit averages its CPS");
+        Q_UNUSED(fastCv) Q_UNUSED(fastDistinct) Q_UNUSED(fastGaps)
+
+        // Blatant: exact grid, window messages.
+        ClickConfig blatant;
+        blatant.mode = BlatantMode;
+        blatant.interval = 2;
+        blatant.hold = 1;
+        const auto blatantPlan = ClickPattern::plan(blatant);
+        check(blatantPlan.fixed && blatantPlan.messages, "blatant is fixed and message-delivered");
+        bool exact = true;
+        auto [bMean, bCv, bDistinct, bGaps] = stats(blatant, 1, 1000, [&](const ClickPattern::Step &st) {
+            exact &= st.gapNs == 2000000 && st.holdNs == 1000000;
+        });
+        check(exact && bDistinct == 1 && bCv < 1e-12, "blatant gaps are exact");
+        Q_UNUSED(bMean) Q_UNUSED(bGaps)
+        const auto bPreview = ClickPattern::preview(blatant, 10);
+        check(bPreview.size() == 10 && bPreview.count(2.0) == 10, "blatant preview is flat");
+
+        // Custom: jitter and drift stay bounded around the interval.
+        ClickConfig custom;
+        custom.mode = CustomMode;
+        custom.interval = 100;
+        custom.hold = 20;
+        custom.jitter = 20;
+        check(!ClickPattern::plan(custom).fixed && !ClickPattern::plan(custom).messages,
+              "custom jitter is variable and emulated by default");
+        bool withinJitter = true;
+        auto [cMean, cCv, cDistinct, cGaps] = stats(custom, 3, 20000, [&](const ClickPattern::Step &st) {
+            withinJitter &= st.gapNs >= 80000000 && st.gapNs <= 120000000 && st.holdNs >= 16000000 &&
+                            st.holdNs <= 24000000;
+        });
+        check(withinJitter, "custom jitter stays within ±20 %");
+        check(qAbs(cMean - 100) < 1, "custom jitter is unbiased");
+        Q_UNUSED(cCv) Q_UNUSED(cDistinct) Q_UNUSED(cGaps)
+        custom.jitter = 0;
+        custom.drift = true;
+        bool waveBounded = true;
+        auto [dMean, dCv, dDistinct, dGaps] = stats(custom, 5, 2000, [&](const ClickPattern::Step &st) {
+            waveBounded &= st.gapNs >= 88000000 - 1 && st.gapNs <= 112000000 + 1;
+        });
+        check(waveBounded && dDistinct > 100 && dCv > 0.03, "custom wave varies within ±12 %");
+        Q_UNUSED(dMean) Q_UNUSED(dGaps)
+        custom.drift = false;
+        custom.delivery = MessageDelivery;
+        check(ClickPattern::plan(custom).fixed && ClickPattern::plan(custom).messages,
+              "custom without jitter uses the exact grid, chosen delivery");
+        ClickConfig tiny;
+        tiny.mode = CustomMode;
+        tiny.interval = 5;
+        tiny.hold = 4;
+        tiny.jitter = 50;
+        bool tinyOk = true;
+        stats(tiny, 11, 5000, [&](const ClickPattern::Step &st) {
+            tinyOk &= st.gapNs >= 1000000 && st.holdNs >= 0 && st.holdNs < st.gapNs;
+        });
+        check(tinyOk, "custom extreme jitter never produces hold >= gap or sub-ms gaps");
+        const auto skip = Timing::advance(100, 1000, 300);
+        // Slots at 400, 700 and 1000 are already due at t=1000: three dropped, next at 1300.
+        check(skip.deadline == 1300 && skip.skipped == 3, "variable scheduler drops missed gaps");
+    }
     QSettings().clear();
     qInfo() << "CONTROLLER_CONFIG_TIMING_PASS" << checks << "assertions";
 }

@@ -28,6 +28,16 @@ class ClickController final : public QObject, public QAbstractNativeEventFilter 
     Q_PROPERTY(int mouseButton READ mouseButton WRITE setMouseButton NOTIFY changed)
     Q_PROPERTY(int holdMs READ holdMs WRITE setHoldMs NOTIFY changed)
     Q_PROPERTY(qulonglong countLimit READ countLimit WRITE setCountLimit NOTIFY changed)
+    Q_PROPERTY(int clickMode READ clickMode WRITE setClickMode NOTIFY changed)
+    Q_PROPERTY(int cpsMin READ cpsMin WRITE setCpsMin NOTIFY changed)
+    Q_PROPERTY(int cpsMax READ cpsMax WRITE setCpsMax NOTIFY changed)
+    Q_PROPERTY(int jitterPct READ jitterPct WRITE setJitterPct NOTIFY changed)
+    Q_PROPERTY(int delivery READ delivery WRITE setDelivery NOTIFY changed)
+    Q_PROPERTY(bool drift READ drift WRITE setDrift NOTIFY changed)
+    Q_PROPERTY(int minIntervalMs READ minIntervalMs NOTIFY changed)
+    Q_PROPERTY(double expectedCps READ expectedCps NOTIFY changed)
+    Q_PROPERTY(QString modeSummary READ modeSummary NOTIFY changed)
+    Q_PROPERTY(QVariantList rhythmPreview READ rhythmPreview NOTIFY changed)
     Q_PROPERTY(int startKey READ startKey NOTIFY changed)
     Q_PROPERTY(int stopKey READ stopKey NOTIFY changed)
     Q_PROPERTY(int startMods READ startMods NOTIFY changed)
@@ -81,6 +91,16 @@ class ClickController final : public QObject, public QAbstractNativeEventFilter 
     int mouseButton() const { return m_config.button; }
     int holdMs() const { return m_config.hold; }
     qulonglong countLimit() const { return m_config.countLimit; }
+    int clickMode() const { return m_config.mode; }
+    int cpsMin() const { return m_config.cpsMin; }
+    int cpsMax() const { return m_config.cpsMax; }
+    int jitterPct() const { return m_config.jitter; }
+    int delivery() const { return m_config.delivery; }
+    bool drift() const { return m_config.drift; }
+    int minIntervalMs() const { return Configuration::minInterval(m_config.mode); }
+    double expectedCps() const;
+    QString modeSummary() const;
+    QVariantList rhythmPreview() const;
     int startKey() const { return m_config.startKey; }
     int stopKey() const { return m_config.stopKey; }
     int startMods() const { return m_config.startMods; }
@@ -104,6 +124,13 @@ class ClickController final : public QObject, public QAbstractNativeEventFilter 
     void setMouseButton(int);
     void setHoldMs(int);
     void setCountLimit(qulonglong);
+    void setClickMode(int);
+    void setCpsMin(int);
+    void setCpsMax(int);
+    Q_INVOKABLE bool setCpsRange(int min, int max);
+    void setJitterPct(int);
+    void setDelivery(int);
+    void setDrift(bool);
     ClickConfig config() const { return m_config; }
     bool applyConfig(const ClickConfig &);
     Q_INVOKABLE bool applyBindings(int key, int mods, int stop, int stopMods);

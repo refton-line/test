@@ -131,7 +131,7 @@ Item {
                     }
                     Label {
                         width: parent.width
-                        text: profile.modelData.detail.split("·")[0].trim()
+                        text: profile.modelData.summary
                         elide: Text.ElideRight
                         font.pixelSize: 12
                         color: Theme.muted
