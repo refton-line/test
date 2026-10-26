@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import CClicker
+import "Motion.js" as Motion
 import "KeyboardMap.js" as KeyMap
 
 Popup {
@@ -37,8 +38,8 @@ Popup {
         radius: 14
         border.color: Theme.controlBorder
     }
-    enter: Transition { ParallelAnimation { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.dialogEnter; easing.type: Easing.OutCubic } NumberAnimation { property: "scale"; from: 0.96; to: 1; duration: Theme.dialogEnter; easing.type: Easing.OutCubic } } }
-    exit: Transition { ParallelAnimation { NumberAnimation { property: "opacity"; to: 0; duration: Theme.dialogExit; easing.type: Easing.InCubic } NumberAnimation { property: "scale"; to: 0.98; duration: Theme.dialogExit; easing.type: Easing.InCubic } } }
+    enter: Transition { ParallelAnimation { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.pageFade; easing.type: Easing.OutCubic } NumberAnimation { property: "scale"; from: 0.94; to: 1; duration: Theme.dialogEnter; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.standardCurve } } }
+    exit: Transition { ParallelAnimation { NumberAnimation { property: "opacity"; to: 0; duration: Theme.dialogExit; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.accelerateCurve } NumberAnimation { property: "scale"; to: 0.97; duration: Theme.dialogExit; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.accelerateCurve } } }
     contentItem: Item {
         Item {
             width: 1040; height: 556

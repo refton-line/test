@@ -48,6 +48,10 @@ RAWKEYBOARD stores E0/E1 in Flags separately from MakeCode: https://learn.micros
 ### Qt AltGr editor bridge (0.4.7)
 QKeyEvent exposes key(), nativeVirtualKey() and nativeScanCode(): https://doc.qt.io/qt-6/qkeyevent.html . The bridge accepts explicit Qt::Key_AltGr; only on Windows it also interprets right-Alt native metadata. Raw Input remains the background source. Tests cover bridge/merge behavior, not every Windows layout/driver's real delivery.
 
+## 0.6.1 motion (October 26, 2026)
+- [Material 3 easing and duration tokens](https://m3.material.io/styles/motion/easing-and-duration/tokens-specs): standard cubic-bezier(0.2, 0, 0, 1), emphasized decelerate (0.05, 0.7, 0.1, 1), emphasized accelerate (0.3, 0, 0.8, 0.15). Values cross-checked in the published token list ([material-web motion tokens](https://raw.githubusercontent.com/material-components/material-web/main/tokens/versions/v0_192/_md-sys-motion.scss)). The page notes that M3 Expressive moves components to springs; applied springs only to direct manipulation (press, knobs) and kept curves for transitions. The shared-axis pattern (outgoing fades fast, incoming follows along the navigation axis) follows the same system.
+- Qt [Easing.BezierSpline](https://doc.qt.io/qt-6/qml-qtquick-propertyanimation.html#easing-prop) and [SpringAnimation](https://doc.qt.io/qt-6/qml-qtquick-springanimation.html) in Qt 6.8.
+
 ## 0.6.0 languages (October 26, 2026)
 - [Qt 6.8 qt_add_translations](https://doc.qt.io/qt-6.8/qtlinguist-cmake-qt-add-translations.html) and [QQmlEngine::retranslate](https://doc.qt.io/qt-6/qqmlengine.html#retranslate): build-time `.qm` embedded as resources; live switching re-evaluates `qsTr` bindings without restart. Checked against the installed 6.8.3 CMake macros (RESOURCE_PREFIX cannot be combined with QM_FILES_OUTPUT_VARIABLE, so tests load the `.qm` from the build directory).
 - The opening morph already in the app is the reference for the close animation: the same expansion parameter runs backwards, so closing reads as the opening in reverse rather than a new effect.

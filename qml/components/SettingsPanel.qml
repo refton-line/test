@@ -2,26 +2,35 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import CClicker
+import "Motion.js" as Motion
 
 Item {
     id: panel
     property var engine
 
     readonly property bool idle: !engine.active
-    component ModeBody: Item {
-        id: body
+    // Mode bodies take turns on the horizontal axis of the mode switch: the new
+    // body slides in from the side of the chosen segment, the old one leaves the other way.
+    property int settledMode: 0
+    component ModeBody: Stage {
         property int mode
-        readonly property bool current: panel.engine.clickMode === mode
         y: 88; width: parent.width; height: 284
-        enabled: current
-        opacity: current ? 1 : 0
-        visible: opacity > 0
-        transform: Translate {
-            x: body.current ? 0 : (body.mode < panel.engine.clickMode ? -Theme.pageTravel : Theme.pageTravel)
-            Behavior on x { NumberAnimation { duration: Theme.pageEnter; easing.type: Easing.OutCubic } }
+        horizontal: true
+        travel: Theme.modeTravel
+        current: panel.engine.clickMode === mode
+        Component.onCompleted: if (current) panel.settledMode = mode
+        onCurrentChanged: {
+            if (current) {
+                const direction = mode > panel.settledMode ? 1 : -1;
+                panel.settledMode = mode;
+                enter(direction);
+            } else {
+                leave(panel.engine.clickMode > mode ? 1 : -1);
+            }
         }
-        Behavior on opacity { NumberAnimation { duration: body.current ? Theme.pageEnter : Theme.pageExit; easing.type: Easing.OutCubic } }
     }
+    property real expectedShown: engine.expectedCps
+    Behavior on expectedShown { NumberAnimation { duration: Theme.thumbTravel; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.decelerateCurve } }
     function rate(v) { return v.toLocaleString(Qt.locale(i18n.locale), 'f', 1) }
 
     Label {
@@ -65,7 +74,7 @@ Item {
             anchors.right: parent.right; anchors.rightMargin: 20
             y: 16; width: 156; spacing: 8
             Label { text: qsTr("Кликов в секунду"); color: Theme.muted; font.pixelSize: Theme.small }
-            Label { text: "≈ " + panel.rate(panel.engine.expectedCps) + qsTr(" / с"); font.family: Theme.mono; font.pixelSize: 24 }
+            Label { text: "≈ " + panel.rate(panel.expectedShown) + qsTr(" / с"); font.family: Theme.mono; font.pixelSize: 24 }
         }
         CpsRange {
             objectName: "cpsRange"
@@ -111,32 +120,15 @@ Item {
             Label { text: qsTr("Интервал, мс → частота"); color: Theme.muted; font.pixelSize: Theme.small }
             Label { text: panel.rate(1000 / panel.engine.intervalMs) + qsTr(" / с"); font.family: Theme.mono; font.pixelSize: 24 }
         }
-        Rectangle {
+        Segmented {
             objectName: "presetsFrame"
-            y: 108; width: parent.width; height: 50
-            radius: Theme.radius
-            color: Theme.canvas
-            border.color: Theme.hairline
-            RowLayout {
-                anchors.fill: parent; anchors.margins: 3; spacing: 4
-                Repeater {
-                    id: presets
-                    model: [10, 50, 100, 200, 500]
-                    ActionButton {
-                        required property int index
-                        required property int modelData
-                        objectName: "preset" + modelData
-                        Layout.fillWidth: true; Layout.preferredWidth: 1; Layout.fillHeight: true
-                        segmented: true
-                        text: modelData + qsTr(" / с")
-                        checked: Math.abs(1000 / panel.engine.intervalMs - modelData) < 0.01
-                        enabled: panel.idle
-                        KeyNavigation.right: presets.itemAt((index + 1) % presets.count)
-                        KeyNavigation.left: presets.itemAt((index + presets.count - 1) % presets.count)
-                        onClicked: panel.engine.intervalMs = Math.round(1000 / modelData)
-                    }
-                }
-            }
+            y: 108; width: parent.width
+            readonly property var rates: [10, 50, 100, 200, 500]
+            model: rates.map(v => v + qsTr(" / с"))
+            names: rates.map(v => "preset" + v)
+            current: rates.findIndex(v => Math.abs(1000 / panel.engine.intervalMs - v) < 0.01)
+            enabled: panel.idle
+            onActivated: index => panel.engine.intervalMs = Math.round(1000 / rates[index])
         }
         RowLayout {
             y: 172; width: parent.width; spacing: 8
@@ -247,31 +239,14 @@ Item {
             text: qsTr("Кнопка")
             font.pixelSize: 14
         }
-        Rectangle {
+        Segmented {
             objectName: "mouseFrame"
-            implicitWidth: 288; implicitHeight: 50
-            radius: Theme.radius
-            color: Theme.canvas
-            border.color: Theme.hairline
-            Row {
-                anchors.fill: parent; anchors.margins: 3; spacing: 3
-                Repeater {
-                    id: mouseChoices
-                    model: [qsTr("Левая"), qsTr("Правая"), qsTr("Средняя")]
-                    ActionButton {
-                        required property int index
-                        required property string modelData
-                        objectName: "mouse" + index
-                        text: modelData; width: 92; height: 44
-                        segmented: true
-                        checked: panel.engine.mouseButton === index
-                        enabled: panel.idle
-                        KeyNavigation.right: mouseChoices.itemAt((index + 1) % 3)
-                        KeyNavigation.left: mouseChoices.itemAt((index + 2) % 3)
-                        onClicked: panel.engine.mouseButton = index
-                    }
-                }
-            }
+            Layout.preferredWidth: 288
+            prefix: "mouse"
+            model: [qsTr("Левая"), qsTr("Правая"), qsTr("Средняя")]
+            current: panel.engine.mouseButton
+            enabled: panel.idle
+            onActivated: index => panel.engine.mouseButton = index
         }
         Item { Layout.fillWidth: true }
         ActionButton {
@@ -304,8 +279,8 @@ Item {
         modal: true
         focus: true
         padding: 24
-        enter: Transition { ParallelAnimation { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.dialogEnter; easing.type: Easing.OutCubic } NumberAnimation { property: "scale"; from: 0.96; to: 1; duration: Theme.dialogEnter; easing.type: Easing.OutCubic } } }
-        exit: Transition { ParallelAnimation { NumberAnimation { property: "opacity"; to: 0; duration: Theme.dialogExit; easing.type: Easing.InCubic } NumberAnimation { property: "scale"; to: 0.98; duration: Theme.dialogExit; easing.type: Easing.InCubic } } }
+        enter: Transition { ParallelAnimation { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.pageFade; easing.type: Easing.OutCubic } NumberAnimation { property: "scale"; from: 0.94; to: 1; duration: Theme.dialogEnter; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.standardCurve } } }
+        exit: Transition { ParallelAnimation { NumberAnimation { property: "opacity"; to: 0; duration: Theme.dialogExit; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.accelerateCurve } NumberAnimation { property: "scale"; to: 0.97; duration: Theme.dialogExit; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.accelerateCurve } } }
         background: Rectangle {
             color: Theme.surface
             radius: Theme.radiusLarge

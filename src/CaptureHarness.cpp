@@ -229,6 +229,92 @@ void runCaptureHarness(QQuickWindow *win, const QString &output, ClickController
         });
         return;
     }
+    // Recording run: the motion sequence at a viewing pace, with no window grabs that
+    // would stall frames. Uses the relative step runner so a busy frame cannot bunch steps.
+    if (QCoreApplication::arguments().contains("--capture-motion-reel")) {
+        const QStringList clicks = {"nav2", "nav3", "nav0", "mode1", "mode2", "mode0",
+                                    "legitPreset3", "legitPreset1", "nav4", "nav0"};
+        int t = 2000;
+        for (const auto &name : clicks) {
+            at(t, [=] { click(win, name); });
+            t += 750;
+        }
+        at(t, [=] { engine->applyBindings(0, 0, 119, 0); });
+        at(t + 1000, [=] { click(win, "dismissError"); });
+        at(t + 1800, [=] { click(win, "closeButton"); });
+        return;
+    }
+    if (QCoreApplication::arguments().contains("--capture-motion-tests")) {
+        const auto sceneRect = [=](const QString &name) {
+            auto *item = find(win->contentItem(), name);
+            if (!item) qFatal("Motion item missing: %s", qPrintable(name));
+            return item->mapRectToScene(QRectF(0, 0, item->width(), item->height()));
+        };
+        const auto near = [](qreal a, qreal b) { return qAbs(a - b) < 0.75; };
+        const auto opacity = [=](const QString &name) { return find(win->contentItem(), name)->opacity(); };
+        at(1700, [=] {
+            if (!near(sceneRect("railPill").y(), sceneRect("nav0").y())) qFatal("Rail pill is not on the selected item");
+            click(win, "nav2");
+            // Overlap, not sequence: the new page exists at once while the old one is still on screen.
+            if (!find(win->contentItem(), "page0")->isVisible() || !find(win->contentItem(), "editStartBinding"))
+                qFatal("Page change has a blank gap");
+        });
+        at(1760, [=] { shot("motion-page-mid"); });
+        at(2300, [=] {
+            if (find(win->contentItem(), "page0")->isVisible() || opacity("page2") < 0.999)
+                qFatal("Page transition did not settle");
+            const QRectF pill = sceneRect("railPill"), marker = sceneRect("railMarker");
+            if (!near(pill.y(), sceneRect("nav2").y()) || !near(marker.height(), 18) ||
+                !near(marker.center().y(), pill.center().y()))
+                qFatal("Rail pill/marker did not settle on the new item");
+            click(win, "nav0");
+        });
+        at(2800, [=] {
+            if (!near(sceneRect("modeFrameThumb").x(), sceneRect("mode0").x())) qFatal("Mode thumb misplaced");
+            click(win, "mode2");
+        });
+        at(2830, [=] { shot("motion-mode-mid"); });
+        at(3300, [=] {
+            const QRectF thumb = sceneRect("modeFrameThumb"), target = sceneRect("mode2");
+            if (!near(thumb.x(), target.x()) || !near(thumb.width(), target.width()))
+                qFatal("Mode thumb did not slide to the selected segment");
+            if (opacity("customBody") < 0.999 || find(win->contentItem(), "legitBody")->isVisible())
+                qFatal("Mode bodies did not settle");
+            click(win, "mode0");
+            engine->applyBindings(0, 0, 119, 0); // a real validation error for the banner
+        });
+        at(3330, [=] { shot("motion-error-rise"); });
+        at(3800, [=] {
+            auto *banner = find(win->contentItem(), "generalError");
+            if (!banner->property("shown").toBool() || banner->opacity() < 0.999) qFatal("Error banner did not rise");
+            click(win, "dismissError");
+        });
+        at(4300, [=] {
+            if (find(win->contentItem(), "generalError")->isVisible()) qFatal("Error banner did not leave");
+            click(win, "closeButton");
+        });
+        // Invariants of the closing choreography, true at any point of the timeline.
+        const auto closing = [=](const char *frame) {
+            const qreal content = win->property("contentReveal").toReal(), shell = win->property("shell").toReal();
+            if (!win->property("exiting").toBool() || content > shell + 1e-6)
+                qFatal("Close: content must leave before the shell folds");
+            auto *mark = find(win->contentItem(), "cmark");
+            const qreal panelW = win->property("panelWidth").toReal(), panelH = win->property("panelHeight").toReal();
+            auto *scene = mark->parentItem();
+            const qreal ex = (scene->width() - panelW) / 2 + (panelW - mark->width()) / 2 * (1 - shell) + 20 * shell;
+            const qreal ey = (scene->height() - panelH) / 2 + 48 * (1 - shell) + 20 * shell;
+            if (!near(mark->x(), ex) || !near(mark->y(), ey)) qFatal("Close: the C left the shell corner");
+            shot(frame);
+        };
+        at(4340, [=] { closing("motion-close-early"); });
+        // ~300 ms into the close under --capture-slow: mid-fold, before the window is gone.
+        at(4400, [=] {
+            closing("motion-close-fold");
+            qInfo() << "NATIVE_MOTION_UI_PASS (overlapping pages, rail pill and stretch marker, sliding thumb, "
+                       "mode bodies, error rise/leave, close order and C glued to the shell)";
+        });
+        return;
+    }
     if (QCoreApplication::arguments().contains("--capture-adaptive-tests")) {
         at(1600, [=] {
             const QRect available = win->screen()->availableGeometry();

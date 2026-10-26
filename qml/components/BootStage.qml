@@ -1,5 +1,6 @@
 import QtQuick
 import CClicker
+import "Motion.js" as Motion
 
 Item {
     id: boot
@@ -7,16 +8,21 @@ Item {
     property bool ready: false
 
     property real shownProgress: 0
+    // Title and bar rise in under the drawing C instead of being there at frame one.
+    property real intro: 0
     onProgressChanged: shownProgress = progress
-    Component.onCompleted: shownProgress = progress
+    Component.onCompleted: { shownProgress = progress; introAnimation.start(); }
+    NumberAnimation { id: introAnimation; target: boot; property: "intro"; to: 1; duration: 520; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.decelerateCurve }
     Behavior on shownProgress {
         NumberAnimation {
-            duration: 360
-            easing.type: Easing.OutCubic
+            duration: 420
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: Motion.standardCurve
         }
     }
     Label {
-        y: 196
+        opacity: Motion.seg(boot.intro, 0.15, 1)
+        y: 196 + 8 * (1 - boot.intro)
         anchors.horizontalCenter: parent.horizontalCenter
         text: "C clicker"
         font.pixelSize: 26
@@ -24,6 +30,7 @@ Item {
         font.letterSpacing: -0.5
     }
     Rectangle {
+        opacity: Motion.seg(boot.intro, 0.35, 1)
         x: 48
         y: 306
         width: parent.width - 96

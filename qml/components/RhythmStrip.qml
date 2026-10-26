@@ -1,5 +1,6 @@
 import QtQuick
 import CClicker
+import "Motion.js" as Motion
 
 // Planned gaps from the same generator the worker uses (fixed preview seed).
 // Taller bar = longer gap. Not live telemetry.
@@ -40,7 +41,13 @@ Item {
                 radius: 1.5
                 color: Theme.accent
                 opacity: 0.45 + 0.55 * (1 - index / strip.gaps.length)
-                Behavior on height { NumberAnimation { duration: Theme.normal; easing.type: Easing.OutCubic } }
+                // A new plan ripples left to right instead of all bars jumping at once.
+                Behavior on height {
+                    SequentialAnimation {
+                        PauseAnimation { duration: index * 6 }
+                        NumberAnimation { duration: Theme.pageIn; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.decelerateCurve }
+                    }
+                }
             }
         }
     }

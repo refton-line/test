@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Window
 import CClicker
 import "components"
+import "components/Motion.js" as Motion
 
 ApplicationWindow {
     id: win
@@ -30,12 +31,24 @@ ApplicationWindow {
     property real pagePhase: 1
     property real languagePhase: 1
     property int displayedPage: 0
-    property int pageDirection: 1
-    property bool pageLeaving: false
+    property real languageShift: 0
     property int beforeFullscreen: Window.Windowed
-    readonly property real panelWidth: Theme.splashWidth + (width / uiScale - Theme.splashWidth) * expansion
-    readonly property real panelHeight: Theme.splashHeight + (height / uiScale - Theme.splashHeight) * expansion
-    readonly property real entrance: Math.max(0, (expansion - 0.78) / 0.22)
+    // Opening and closing share one linear timeline, `expansion` (0 = startup card,
+    // 1 = full window). Each element eases its own window of it, so the sequence is
+    // choreographed rather than simultaneous, and closing replays it backwards:
+    // content leaves first, then the shell folds while the C rides its corner home.
+    readonly property real shell: Motion.standard(Motion.seg(expansion, 0.04, 0.72))
+    readonly property real railReveal: Motion.decelerate(Motion.seg(expansion, 0.3, 0.7))
+    readonly property real chromeReveal: Motion.decelerate(Motion.seg(expansion, 0.62, 0.92))
+    readonly property real contentReveal: Motion.decelerate(Motion.seg(expansion, 0.6, 1))
+    function navReveal(i) { return Motion.decelerate(Motion.seg(expansion, 0.48 + 0.04 * i, 0.78 + 0.04 * i)); }
+    readonly property real panelWidth: Theme.splashWidth + (width / uiScale - Theme.splashWidth) * shell
+    readonly property real panelHeight: Theme.splashHeight + (height / uiScale - Theme.splashHeight) * shell
+    // Selection pill and its crimson edge marker in the rail.
+    function navY(i) { return 100 + i * 56; }
+    property real railPillY: navY(0)
+    property real markerTop: navY(0) + 15
+    property real markerBottom: navY(0) + 33
 
     function reveal() {
         if (startup.done && minimumElapsed && !opening && !exiting) {
@@ -67,6 +80,9 @@ ApplicationWindow {
         if (!exiting) {
             exiting = true;
             morph.stop();
+            // A close during opening only has to undo what was shown.
+            exitFold.duration = Math.max(1, Theme.closeTimeline * expansion);
+            exitPause.duration = Math.max(0, exitFold.duration - 140);
             exitAnimation.start();
         }
     }
@@ -75,42 +91,64 @@ ApplicationWindow {
         languageSwitch.code = code;
         languageSwitch.start();
     }
-    function changePage() {
-        if (pageTransition.running || selectedPage === displayedPage) return;
-        pageDirection = selectedPage > displayedPage ? 1 : -1;
-        pageTransition.start();
+    // Pages share a vertical axis that follows the rail: going down the list, the
+    // new page rises from below while the old one lifts away, overlapping.
+    onSelectedPageChanged: {
+        const from = displayedPage, to = selectedPage;
+        if (from === to) return;
+        const direction = to > from ? 1 : -1;
+        displayedPage = to;
+        const pages = [page0, page1, page2, page3, page4];
+        pages[from].leave(direction);
+        pages[to].enter(direction);
+        pillMove.to = navY(to);
+        markerTopMove.to = navY(to) + 15;
+        markerBottomMove.to = navY(to) + 33;
+        // The leading edge runs ahead and the trailing edge catches up, so the
+        // marker stretches in the direction of travel and settles back to 18px.
+        markerTopMove.duration = direction > 0 ? Theme.railTravel : Theme.railTravel * 0.55;
+        markerBottomMove.duration = direction > 0 ? Theme.railTravel * 0.55 : Theme.railTravel;
+        railMove.restart();
     }
-    onSelectedPageChanged: changePage()
     onExpansionChanged: if (expansion === 1) clickEngine.setReady(true)
     Component.onCompleted: { startup.start(); minimum.start(); }
     Connections { target: startup; function onChanged() { win.reveal(); } }
     Shortcut { sequence: "F11"; enabled: win.expansion === 1 && !keyPicker.visible && !clickEngine.startBindings.some(b => b.keys.indexOf(122) !== -1) && !clickEngine.stopBindings.some(b => b.keys.indexOf(122) !== -1); onActivated: win.toggleFullscreen() }
     Shortcut { sequence: "Escape"; enabled: win.fullScreen && !keyPicker.visible; onActivated: win.toggleFullscreen() }
     Timer { id: minimum; interval: Theme.reveal; onTriggered: { win.minimumElapsed = true; win.reveal(); } }
-    NumberAnimation { id: morph; target: win; property: "expansion"; to: 1; duration: Theme.reveal; easing.type: Easing.OutCubic }
-    SequentialAnimation {
-        id: pageTransition
-        onFinished: win.changePage()
-        ScriptAction { script: win.pageLeaving = true }
-        NumberAnimation { target: win; property: "pagePhase"; to: 0; duration: Theme.pageExit; easing.type: Easing.InCubic }
-        ScriptAction { script: { win.displayedPage = win.selectedPage; win.pageLeaving = false; } }
-        NumberAnimation { target: win; property: "pagePhase"; to: 1; duration: Theme.pageEnter; easing.type: Easing.OutCubic }
+    // Linear on purpose: every consumer applies its own curve to its window.
+    NumberAnimation { id: morph; target: win; property: "expansion"; to: 1; duration: Theme.openTimeline; easing.type: Easing.Linear }
+    ParallelAnimation {
+        id: railMove
+        NumberAnimation { id: pillMove; target: win; property: "railPillY"; duration: Theme.railTravel; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.standardCurve }
+        NumberAnimation { id: markerTopMove; target: win; property: "markerTop"; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.decelerateCurve }
+        NumberAnimation { id: markerBottomMove; target: win; property: "markerBottom"; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.decelerateCurve }
     }
-    // Fade the whole interface out, swap the catalogue while invisible, fade back in.
+    // Only the words refresh: text lifts out, the catalogue swaps while it is
+    // invisible, and the new text settles in. Shell, rail and pill stay put.
     SequentialAnimation {
         id: languageSwitch
         property string code
-        NumberAnimation { target: win; property: "languagePhase"; to: 0; duration: Theme.languageOut; easing.type: Easing.InCubic }
-        ScriptAction { script: i18n.setLanguage(languageSwitch.code) }
-        NumberAnimation { target: win; property: "languagePhase"; to: 1; duration: Theme.languageIn; easing.type: Easing.OutCubic }
+        ParallelAnimation {
+            NumberAnimation { target: win; property: "languagePhase"; to: 0; duration: Theme.languageOut; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.accelerateCurve }
+            NumberAnimation { target: win; property: "languageShift"; to: -4; duration: Theme.languageOut; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.accelerateCurve }
+        }
+        ScriptAction { script: { i18n.setLanguage(languageSwitch.code); win.languageShift = 6; } }
+        ParallelAnimation {
+            NumberAnimation { target: win; property: "languagePhase"; to: 1; duration: Theme.languageIn; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.decelerateCurve }
+            NumberAnimation { target: win; property: "languageShift"; to: 0; duration: Theme.languageIn; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.decelerateCurve }
+        }
     }
-    // Closing mirrors the opening: the shell folds back into the startup card,
-    // the C returns to the centre, then everything fades.
-    SequentialAnimation {
+    // The opening timeline runs backwards; near its end the card dissolves while
+    // the C un-draws, overlapping instead of waiting for the fold to finish.
+    ParallelAnimation {
         id: exitAnimation
         onFinished: { win.allowClose = true; win.close(); }
-        NumberAnimation { target: win; property: "expansion"; to: 0; duration: Theme.exitMorph; easing.type: Easing.InOutCubic }
-        NumberAnimation { target: win; property: "dismissal"; to: 0; duration: Theme.exitDuration; easing.type: Easing.InCubic }
+        NumberAnimation { id: exitFold; target: win; property: "expansion"; to: 0; duration: Theme.closeTimeline; easing.type: Easing.Linear }
+        SequentialAnimation {
+            PauseAnimation { id: exitPause; duration: Theme.closeTimeline - 140 }
+            NumberAnimation { target: win; property: "dismissal"; to: 0; duration: Theme.closeFade; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.accelerateCurve }
+        }
     }
     KeyboardPicker { id: keyPicker; engine: clickEngine; uiScale: win.uiScale }
 
@@ -119,7 +157,7 @@ ApplicationWindow {
         width: win.width / win.uiScale
         height: win.height / win.uiScale
         anchors.centerIn: parent
-        scale: win.uiScale * (0.985 + 0.015 * win.dismissal)
+        scale: win.uiScale * (0.96 + 0.04 * win.dismissal)
         opacity: win.dismissal
         enabled: !win.exiting
         Rectangle {
@@ -137,10 +175,10 @@ ApplicationWindow {
             Item {
                 anchors.fill: parent
                 anchors.margins: 1
-                visible: win.entrance > 0
-                opacity: win.entrance * win.languagePhase
+                visible: win.expansion > 0.25
                 enabled: win.expansion === 1
                 Rectangle {
+                    opacity: win.railReveal
                     x: 0; y: 0
                     width: Theme.railWidth; height: parent.height
                     radius: win.fullScreen || win.maximized ? 0 : Theme.radiusLarge - 1
@@ -158,6 +196,7 @@ ApplicationWindow {
                         onDoubleClicked: win.toggleMaximized()
                     }
                     Row {
+                        opacity: win.chromeReveal
                         anchors.right: parent.right; anchors.rightMargin: 8
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: 0
@@ -166,6 +205,22 @@ ApplicationWindow {
                         ActionButton { objectName: "fullscreenButton"; text: ""; glyph: win.fullScreen ? "minimize" : "fullscreen"; quiet: true; width: 44; Accessible.name: win.fullScreen ? qsTr("Выйти из полного экрана") : qsTr("Полный экран"); onClicked: win.toggleFullscreen() }
                         ActionButton { objectName: "closeButton"; text: ""; glyph: "x"; quiet: true; width: 44; Accessible.name: qsTr("Закрыть"); onClicked: win.requestClose() }
                     }
+                }
+                Rectangle {
+                    objectName: "railPill"
+                    x: 12; y: win.railPillY
+                    width: Theme.railWidth - 24; height: 48
+                    radius: Theme.radius
+                    color: Theme.surfaceRaised
+                    opacity: win.navReveal(win.displayedPage)
+                }
+                Rectangle {
+                    objectName: "railMarker"
+                    x: 12; y: win.markerTop
+                    width: 3; height: win.markerBottom - win.markerTop
+                    radius: 1.5
+                    color: Theme.brand
+                    opacity: win.navReveal(win.displayedPage)
                 }
                 Column {
                     x: 12; y: 100; spacing: 8
@@ -176,7 +231,9 @@ ApplicationWindow {
                             required property string modelData
                             objectName: "nav" + index
                             width: Theme.railWidth - 24; height: 48
-                            navigation: true; quiet: true
+                            navigation: true; quiet: true; fillChecked: false
+                            opacity: win.navReveal(index) * win.languagePhase
+                            transform: Translate { x: -12 * (1 - win.navReveal(index)); y: win.languageShift }
                             text: modelData; textSize: 13
                             glyph: ["mouse", "activity", "keyboard", "folder", "globe"][index]
                             checked: win.selectedPage === index
@@ -185,42 +242,44 @@ ApplicationWindow {
                     }
                 }
                 Column {
+                    opacity: win.navReveal(5) * win.languagePhase
                     x: 20; anchors.bottom: parent.bottom; anchors.bottomMargin: 26; spacing: 8
                     ActionButton { objectName: "openConfigFolder"; text: qsTr("Файлы"); glyph: "folder"; quiet: true; Accessible.name: qsTr("Открыть папку конфигураций"); onClicked: configs.openFolder() }
                 }
                 Item {
                     id: workArea
-                    enabled: !pageTransition.running
+                    objectName: "workArea"
                     width: Math.min(1120, parent.width - Theme.railWidth - 2 * Theme.gutter)
                     x: Theme.railWidth + (parent.width - Theme.railWidth - width) / 2
                     y: Math.max(100, (parent.height - 548 - 48) / 2)
                     height: parent.height - y - Theme.gutter
+                    opacity: win.contentReveal * win.languagePhase
+                    transform: Translate { y: 14 * (1 - win.contentReveal) + win.languageShift }
                     // Content grows horizontally but never becomes an oversized scaled bitmap.
-                    SettingsPanel {
-                        x: (win.pageLeaving ? -1 : 1) * win.pageDirection * Theme.pageTravel * (1 - win.pagePhase)
-                        y: 0
-                        width: parent.width - 312; height: 548
-                        opacity: win.pagePhase
-                        engine: clickEngine
-                        visible: win.displayedPage === 0
+                    // The clicker page is a direct child so its state and objects persist.
+                    Stage {
+                        id: page0
+                        objectName: "page0"
+                        width: workArea.width; height: workArea.height
+                        current: win.displayedPage === 0
+                        onOpacityChanged: if (current) win.pagePhase = opacity
+                        SettingsPanel { width: parent.width - 312; height: 548; engine: clickEngine }
+                        LiveMetrics { x: parent.width - 240; y: 24; width: 216; height: 500; engine: clickEngine }
                     }
-                    LiveMetrics {
-                        x: parent.width - 240
-                        y: 24
-                        width: 216; height: 500
-                        opacity: win.pagePhase
-                        engine: clickEngine
-                        visible: win.displayedPage === 0
+                    component LoadedPage: Stage {
+                        id: loaded
+                        property int index
+                        property Component page
+                        objectName: "page" + index
+                        width: workArea.width; height: workArea.height
+                        current: win.displayedPage === index
+                        onOpacityChanged: if (current) win.pagePhase = opacity
+                        Loader { anchors.fill: parent; active: loaded.current || loaded.visible; sourceComponent: loaded.page }
                     }
-                    Loader {
-                        id: page
-                        x: (win.pageLeaving ? -1 : 1) * win.pageDirection * Theme.pageTravel * (1 - win.pagePhase)
-                        y: 0
-                        width: parent.width; height: parent.height
-                        opacity: win.pagePhase
-                        active: win.displayedPage !== 0
-                        sourceComponent: [null, sessionPage, preferencesPage, configPage, languagePage][win.displayedPage]
-                    }
+                    LoadedPage { id: page1; index: 1; page: sessionPage }
+                    LoadedPage { id: page2; index: 2; page: preferencesPage }
+                    LoadedPage { id: page3; index: 3; page: configPage }
+                    LoadedPage { id: page4; index: 4; page: languagePage }
                     Component { id: sessionPage; SessionPanel { engine: clickEngine} }
                     Component { id: preferencesPage; PreferencesPanel { engine: clickEngine; keyboard: keyPicker } }
                     Component { id: configPage; ConfigPanel { engine: clickEngine; store: configs} }
@@ -234,16 +293,28 @@ ApplicationWindow {
                     readonly property bool shown: clickEngine.error !== "" && !keyPicker.visible
                     property string message
                     Connections { target: clickEngine; function onChanged() { if (clickEngine.error !== "") errorBanner.message = clickEngine.error } }
+                    property real lift: 18
                     anchors.bottom: parent.bottom
-                    anchors.bottomMargin: shown ? 32 : 20
+                    anchors.bottomMargin: 32
                     width: parent.width - x - Theme.gutter
                     height: Math.max(52, errorText.implicitHeight + 24)
                     color: Theme.surface; radius: Theme.radius
                     border.color: Theme.danger
-                    opacity: shown ? 1 : 0
+                    opacity: 0
                     visible: opacity > 0
-                    Behavior on opacity { NumberAnimation { duration: errorBanner.shown ? Theme.dialogEnter : Theme.dialogExit; easing.type: Easing.OutCubic } }
-                    Behavior on anchors.bottomMargin { NumberAnimation { duration: Theme.normal; easing.type: Easing.OutCubic } }
+                    transform: Translate { y: errorBanner.lift }
+                    states: State { name: "shown"; when: errorBanner.shown; PropertyChanges { errorBanner.opacity: 1; errorBanner.lift: 0 } }
+                    transitions: [
+                        Transition {
+                            to: "shown"
+                            NumberAnimation { property: "opacity"; duration: Theme.pageFade; easing.type: Easing.OutCubic }
+                            NumberAnimation { property: "lift"; duration: Theme.pageIn; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.decelerateCurve }
+                        },
+                        Transition {
+                            from: "shown"
+                            NumberAnimation { properties: "opacity,lift"; duration: Theme.pageOut + 20; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.accelerateCurve }
+                        }
+                    ]
                     Label {
                         id: errorText
                         anchors.left: parent.left; anchors.right: dismissErrorButton.left
@@ -267,7 +338,8 @@ ApplicationWindow {
             BootStage {
                 anchors.fill: parent
                 progress: startup.progress; ready: startup.done
-                opacity: Math.max(0, 1 - win.expansion / 0.25)
+                opacity: 1 - Motion.accelerate(Motion.seg(win.expansion, 0, 0.2))
+                transform: Translate { y: -10 * Motion.seg(win.expansion, 0, 0.2) }
                 visible: opacity > 0 && startup.error === "" && !win.exiting
             }
             Rectangle {
@@ -288,10 +360,13 @@ ApplicationWindow {
             }
         }
         CMark {
-            readonly property real dock: Math.max(0, Math.min(1, (win.expansion - 0.10) / 0.90))
+            objectName: "cmark"
+            // Glued to the shell: centred in the card, then carried to the corner.
+            readonly property real dock: win.shell
             width: 112 - 84 * dock; height: width
-            x: (scene.width - width)/2 * (1-dock) + 20*dock
-            y: ((scene.height - Theme.splashHeight)/2 + 48)*(1-dock) + 20*dock
+            x: (scene.width - win.panelWidth) / 2 + (win.panelWidth - width) / 2 * (1 - dock) + 20 * dock
+            y: (scene.height - win.panelHeight) / 2 + 48 * (1 - dock) + 20 * dock
+            erase: 1 - win.dismissal
             visible: startup.error === ""
 
         }

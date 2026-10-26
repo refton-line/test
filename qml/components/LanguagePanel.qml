@@ -43,8 +43,8 @@ Item {
                 KeyNavigation.right: cards.itemAt((index + 1) % cards.count)
                 KeyNavigation.left: cards.itemAt((index + cards.count - 1) % cards.count)
                 onClicked: if (!current) panel.pick(modelData.code)
-                scale: down ? 0.99 : 1
-                Behavior on scale { NumberAnimation { duration: Theme.fast; easing.type: Easing.OutCubic } }
+                scale: down ? 0.985 : 1
+                Behavior on scale { SpringAnimation { spring: 6; damping: 0.45; epsilon: 0.0005 } }
                 background: Rectangle {
                     radius: Theme.radiusLarge
                     color: card.current ? Theme.surfaceRaised : card.hovered ? Theme.surfaceHover : Theme.surface

@@ -41,6 +41,13 @@ validKey and validChordKey agree on physical side-specific modifiers and PrintSc
 ## AltGrCapture 0.4.7
 No new visual controls. An editor-only Qt right-Alt bridge supplements Raw Input capture. Press identity uses explicit AltGr or Windows right-side native metadata, not translated modifier flags. The editor selects on held-state union rising edges to coalesce both deliveries; releasing one source does not release another. Background matching and storage remain unchanged.
 
+## Motion system 0.6.1
+Motion is now a system, not a set of effects. One vocabulary of curves after the Material 3 easing tokens (standard 0.2/0/0/1 for surfaces changing in place, emphasized decelerate for arrivals, emphasized accelerate for exits), implemented once in `components/Motion.js` for both `NumberAnimation` (BezierSpline arrays) and JS-driven choreography; durations live in Theme. Springs only for direct manipulation (press, slider knobs).
+
+Opening and closing share one linear timeline, `expansion`. Each element reads its own eased window: boot text out 0–0.2, shell 0.04–0.72 (standard), rail surface 0.3–0.7, nav items cascade 0.48+0.04·i, window controls 0.62–0.92, content 0.6–1.0 with a 14px rise. The C is glued to the shell: centred in the card, carried to the corner by the same progress. Closing plays the timeline backwards in 400 ms (content leaves before the shell folds; invariant-tested), and the last 170 ms dissolve the card (scale 0.96) while the C un-draws, mirroring the opening trace.
+
+Pages share the rail's vertical axis. Navigation overlaps the two pages in motion but not in opacity: the old page drops to 0 in 90 ms while lifting 9px, the new one starts 60 ms later and decelerates from 18px below (380 ms). Mode bodies do the same horizontally, from the side of the chosen segment. One selection pill slides between rail items (340 ms standard); its crimson marker's leading edge runs ahead and the trailing edge catches up, so it stretches in the direction of travel. Segmented controls get one sliding thumb; resizes move it without animation. The language switch refreshes only the words (110 ms out, 280 ms in), never the shell.
+
 ## Languages and motion 0.6.0
 A fifth rail destination, Language, with a globe icon in the existing 1.75px stroke style. Two equal cards (EN / RU) show the code in large mono, the native language name and a sample line in that language; the selected card uses the same crimson fill, edge marker and a check badge that scales in. Changing language fades the whole interface out (90 ms), swaps the catalogue while invisible and fades back (220 ms). Default English; the Russian copy stays the source text. "Конфигурации" is "Profiles" in English: shorter in the rail and matches the wording of the list.
 

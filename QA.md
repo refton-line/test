@@ -1,4 +1,12 @@
-# C clicker 0.6.0 Languages: QA
+# C clicker 0.6.1 Motion: QA
+
+## Current 0.6.1 motion system
+No engine, storage or translation changes (`translations_complete` still 232 messages; 725 unit assertions unchanged). New native capture `--capture-motion-tests` (`NATIVE_MOTION_UI_PASS`): right after a nav click the new page already exists while the old one is still visible (no blank gap); after settling the old page is hidden, the rail pill sits on the new item and the marker is back to 18px, centred; the mode thumb slides to the chosen segment's exact geometry; mode bodies settle; the error banner rises to full opacity and leaves after dismiss; during the close, at two points of the timeline, content progress never exceeds shell progress and the C stays at the shell-corner position. All eight capture modes pass, plus adaptive at 150 %.
+
+A real-time recording under Xvfb (xcb, software renderer, `--capture-motion-reel`) was reviewed frame by frame: opening cascade, page and mode transitions, error rise/leave and close fold all play in order. An earlier reel scheduled steps with independent timers, which bunched under load; the reel now uses the relative step runner.
+
+Found and fixed during review: an exposure overlap in mode switching (both bodies ~50 % visible mid-switch), and the CPS slider animating its own initial layout (knobs sliding in from the left). The slider now animates value changes only.
+
 
 ## Current 0.6.0 languages and animations
 725 controller assertions (711 retained + 14): English default and locale, translated mode summary / run state / validation error / QML string, unknown language rejected, switch to Russian stored and reflected in derived text, persistence across controller restarts, back to English, missing catalogue falls back to Russian, invalid stored value falls back to English. New CTest `translations_complete` re-runs lupdate over all sources and fails on new, stale, unfinished, empty, placeholder-mismatched or Cyrillic English entries (232 messages pass).

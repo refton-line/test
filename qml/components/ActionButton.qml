@@ -9,6 +9,8 @@ Button {
     property bool navigation: false
     property bool segmented: false
     property bool outlined: false
+    // Off where a shared sliding thumb or pill draws the selection instead.
+    property bool fillChecked: true
     property int textSize: Theme.small
     property int maxTextWidth: 1000
     property string glyph: ""
@@ -22,11 +24,13 @@ Button {
     Accessible.checkable: checkable || navigation || segmented
     Accessible.checked: checked
     opacity: enabled ? 1 : 0.5
-    scale: down ? 0.985 : 1
-    Behavior on scale { NumberAnimation { duration: Theme.fast; easing.type: Easing.OutCubic } }
+    // Physical press: a spring dips on press and overshoots slightly on release.
+    scale: down ? 0.965 : 1
+    Behavior on scale { SpringAnimation { spring: 7; damping: 0.42; epsilon: 0.0005 } }
     background: Rectangle {
         radius: control.segmented ? Theme.radiusSmall : Theme.radius
         color: control.lightFace ? (control.down ? Theme.primaryHint : control.hovered ? Theme.accentHover : Theme.accent)
+             : control.checked && !control.fillChecked ? Theme.clear
              : control.down ? Theme.accentSoft
              : control.checked ? Theme.surfaceRaised
              : control.hovered ? Theme.surfaceHover
@@ -36,13 +40,6 @@ Button {
                     : control.lightFace || control.quiet || control.segmented ? Theme.clear
                     : control.outlined ? Theme.controlBorder : Theme.hairline
         Behavior on color { enabled: !control.primary; ColorAnimation { duration: Theme.fast } }
-        Rectangle {
-            visible: control.navigation && height > 0
-            width: 3; height: control.checked ? 18 : 0; radius: 1
-            Behavior on height { NumberAnimation { duration: Theme.normal; easing.type: Easing.OutCubic } }
-            x: 0; y: (parent.height - height) / 2
-            color: control.lightFace ? Theme.accentInk : Theme.brand
-        }
     }
     contentItem: Item {
         implicitWidth: contentRow.implicitWidth
@@ -66,6 +63,7 @@ Button {
                 color: control.lightFace ? Theme.accentInk : control.navigation && !control.checked ? Theme.muted : Theme.ink
                 font.pixelSize: control.textSize
                 font.weight: control.checked || control.primary ? Font.DemiBold : Font.Medium
+                Behavior on color { ColorAnimation { duration: Theme.normal } }
                 anchors.verticalCenter: parent.verticalCenter
             }
 

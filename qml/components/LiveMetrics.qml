@@ -1,9 +1,17 @@
 import QtQuick
 import CClicker
+import "Motion.js" as Motion
 
 Item {
     id: panel
     property var engine
+    // Readouts glide between 100 ms samples instead of ticking.
+    property real cpsShown: Math.max(0, engine.measuredCps)
+    property real clicksShown: engine.clicks
+    property real targetShown: engine.expectedCps
+    Behavior on cpsShown { NumberAnimation { duration: 260; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.decelerateCurve } }
+    Behavior on clicksShown { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+    Behavior on targetShown { NumberAnimation { duration: Theme.thumbTravel; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.decelerateCurve } }
     Rectangle {
         anchors.fill: parent; anchors.margins: -24
         radius: Theme.radiusLarge
@@ -18,6 +26,8 @@ Item {
         width: chipText.implicitWidth + 16; height: 24
         radius: Theme.radiusSmall
         color: panel.engine.clickMode === 1 ? Theme.accent : Theme.surfaceRaised
+        Behavior on color { ColorAnimation { duration: Theme.normal } }
+        Behavior on width { NumberAnimation { duration: Theme.thumbTravel; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.standardCurve } }
         Label {
             id: chipText
             anchors.centerIn: parent
@@ -28,17 +38,31 @@ Item {
     }
     Row {
         y: 48; spacing: 8
-        Rectangle {
-            width: 6; height: 6; radius: 3
+        Item {
+            width: 6; height: 6
             anchors.verticalCenter: parent.verticalCenter
-            color: panel.engine.active ? Theme.brand : Theme.muted
-            Behavior on color { ColorAnimation { duration: Theme.normal } }
-            SequentialAnimation on opacity {
-                running: panel.engine.active
-                loops: Animation.Infinite
-                alwaysRunToEnd: true
-                NumberAnimation { to: 0.25; duration: 600; easing.type: Easing.InOutSine }
-                NumberAnimation { to: 1; duration: 600; easing.type: Easing.InOutSine }
+            // While sending, a ring pings outward from a steady dot.
+            Rectangle {
+                id: ping
+                anchors.centerIn: parent
+                width: 6; height: 6; radius: 3
+                color: Theme.brand
+                opacity: 0
+                SequentialAnimation {
+                    running: panel.engine.active
+                    loops: Animation.Infinite
+                    alwaysRunToEnd: true
+                    ParallelAnimation {
+                        NumberAnimation { target: ping; property: "scale"; from: 1; to: 3.4; duration: 1100; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.decelerateCurve }
+                        NumberAnimation { target: ping; property: "opacity"; from: 0.6; to: 0; duration: 1100; easing.type: Easing.OutCubic }
+                    }
+                    PauseAnimation { duration: 200 }
+                }
+            }
+            Rectangle {
+                anchors.fill: parent; radius: 3
+                color: panel.engine.active ? Theme.brand : Theme.muted
+                Behavior on color { ColorAnimation { duration: Theme.normal } }
             }
         }
         Label {
@@ -54,12 +78,12 @@ Item {
     Label {
         objectName: "targetRate"
         y: 96; anchors.right: parent.right
-        text: qsTr("цель %1").arg(panel.engine.expectedCps.toLocaleString(Qt.locale(i18n.locale), 'f', panel.engine.expectedCps < 100 ? 1 : 0))
+        text: qsTr("цель %1").arg(panel.targetShown.toLocaleString(Qt.locale(i18n.locale), 'f', panel.engine.expectedCps < 100 ? 1 : 0))
         color: Theme.muted; font.family: Theme.mono; font.pixelSize: 12
     }
     Label {
         y: 124; width: parent.width; height: 56
-        text: panel.engine.measuredCps < 0 ? "—" : panel.engine.measuredCps.toLocaleString(Qt.locale(i18n.locale), 'f', 1)
+        text: panel.engine.measuredCps < 0 ? "—" : panel.cpsShown.toLocaleString(Qt.locale(i18n.locale), 'f', 1)
         font.family: Theme.mono; font.pixelSize: 40
         fontSizeMode: Text.Fit; minimumPixelSize: 20
     }
@@ -67,7 +91,7 @@ Item {
     Label { y: 224; text: qsTr("Принято пар"); font.pixelSize: 14; color: Theme.muted }
     Label {
         y: 252; width: parent.width; height: 42
-        text: panel.engine.clicks.toLocaleString(Qt.locale(i18n.locale), 'f', 0)
+        text: Math.round(panel.clicksShown).toLocaleString(Qt.locale(i18n.locale), 'f', 0)
         font.family: Theme.mono; font.pixelSize: 30
         fontSizeMode: Text.Fit; minimumPixelSize: 14
     }

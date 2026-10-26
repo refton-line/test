@@ -32,18 +32,26 @@ QtObject {
     readonly property int radius: 10
     readonly property int radiusLarge: 14
     readonly property int control: 44
+    // Motion durations (ms). Curves live in components/Motion.js.
     readonly property int fast: 120
     readonly property int normal: 220
-    readonly property int pageExit: 85
-    readonly property int pageEnter: 170
-    readonly property int pageTravel: 14
-    readonly property int dialogEnter: 150
-    readonly property int dialogExit: 100
     readonly property int keyFeedback: 75
-    readonly property int exitDuration: 170
-    readonly property int exitMorph: 300
-    readonly property int languageOut: 90
-    readonly property int languageIn: 220
+    readonly property int openTimeline: 820
+    readonly property int closeTimeline: 400
+    readonly property int closeFade: 170
+    readonly property int pageIn: 380
+    readonly property int pageFade: 220
+    readonly property int pageOut: 120
+    readonly property int pageFadeOut: 90
+    readonly property int pageOverlap: 60
+    readonly property int pageRise: 18
+    readonly property int modeTravel: 24
+    readonly property int railTravel: 340
+    readonly property int thumbTravel: 300
+    readonly property int dialogEnter: 300
+    readonly property int dialogExit: 130
+    readonly property int languageOut: 110
+    readonly property int languageIn: 280
     readonly property int reveal: 560
     readonly property int baseWidth: 1160
     readonly property int baseHeight: 800
