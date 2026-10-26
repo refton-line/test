@@ -29,6 +29,8 @@ QtObject {
     readonly property color focus: "#0055ff"
     readonly property color focusOnAccent: "#010521"
     readonly property color danger: "#c22a14"
+    readonly property color dangerFace: "#e5484d"
+    readonly property color dangerPressed: "#c93b40"
     readonly property color clear: "transparent"
     readonly property color edge: "#868a9c"
     readonly property color primaryHint: "#6ad2f7"

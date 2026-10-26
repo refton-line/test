@@ -203,6 +203,17 @@ void runCaptureHarness(QQuickWindow *win, const QString &output, ClickController
     };
     auto shot = [=](const QString &name) { snapshot(win, output + "/" + name + ".png"); };
     if (QCoreApplication::arguments().contains("--capture-window-tests")) {
+        // Window controls: hovering Close shows the red face (captured for review).
+        at(1650, [=] {
+            auto *close = find(win->contentItem(), "closeButton");
+            const QPointF c = close->mapToScene(QPointF(close->width() / 2, close->height() / 2));
+            QMouseEvent move(QEvent::MouseMove, c, c, win->mapToGlobal(c.toPoint()), Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+            QCoreApplication::sendEvent(win, &move);
+        });
+        at(1700, [=] {
+            if (!find(win->contentItem(), "closeButton")->property("hovered").toBool()) qFatal("Close button hover not detected");
+            shot("window-controls-close-hover");
+        });
         win->installEventFilter(new CloseAudit(win));
         at(1600, [=] { shot("windowed"); });
         at(1800, [=] { click(win, "fullscreenButton"); });

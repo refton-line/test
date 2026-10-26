@@ -20,7 +20,7 @@ for bg in ['canvas','workspace','rail','surface','surfaceRaised','accentSoft']:
   pairs.append((fg,bg,4.5))
  for fg in ['focus','controlBorder']:
   pairs.append((fg,bg,3))
-pairs += [('accentInk','accent',4.5),('accentInk','accentEnd',4.5),('accentInk','accentHover',4.5),('accentInk','primaryHint',4.5),('danger','surface',4.5),('focusOnAccent','accent',3),('focusOnAccent','accentHover',3)]
+pairs += [('accentInk','accent',4.5),('accentInk','accentEnd',4.5),('accentInk','accentHover',4.5),('accentInk','primaryHint',4.5),('danger','surface',4.5),('sheen','dangerFace',3),('sheen','dangerPressed',3),('focusOnAccent','accent',3),('focusOnAccent','accentHover',3)]
 for bg in ['canvas','workspace','rail','surface','surfaceRaised','accentSoft']:
  pairs.append(('brand',bg,3))
 errors=[];results=[]
