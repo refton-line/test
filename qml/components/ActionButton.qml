@@ -39,10 +39,10 @@ Button {
              : control.checked ? Theme.surfaceRaised
              : control.hovered ? Theme.surfaceHover
              : control.quiet || control.segmented ? Theme.clear : Theme.surface
-        // Primary actions are lit: an ember gradient face and a bloom that grows on hover.
+        // Primary actions are lit: a silver gradient face and a white bloom that grows on hover.
         gradient: control.lightFace ? emberFace : undefined
         border.width: control.visualFocus ? 2 : 1
-        border.color: control.visualFocus ? Theme.focus
+        border.color: control.visualFocus ? (control.lightFace ? Theme.focusOnAccent : Theme.focus)
                     : control.lightFace || control.quiet || control.segmented ? Theme.clear
                     : control.outlined ? Theme.controlBorder : Theme.hairline
         Behavior on color { enabled: !control.primary; ColorAnimation { duration: Theme.fast } }
@@ -58,7 +58,7 @@ Button {
             radius: parent.radius
             color: Theme.brand
             spread: 14
-            peak: 0.2
+            peak: 0.14
             strength: control.lightFace ? (control.hovered || control.visualFocus ? 1 : 0.45) : 0
             Behavior on strength { NumberAnimation { duration: Theme.normal; easing.type: Easing.OutCubic } }
         }
@@ -66,7 +66,7 @@ Button {
             visible: control.lightFace
             x: parent.radius; width: parent.width - 2 * parent.radius
             height: 1
-            color: Theme.alpha(Theme.accentInk, 0.28)
+            color: Theme.alpha(Theme.sheen, 0.7)
         }
     }
     contentItem: Item {

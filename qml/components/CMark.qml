@@ -28,11 +28,11 @@ Item {
             c.beginPath();
             c.arc(width/2, height/2, s*0.31, Math.PI*0.23, Math.PI*0.23 + Math.PI*1.54*mark.trace*(1 - mark.erase));
             c.lineCap = "round"; c.lineWidth = s*0.105;
-            // Same ember gradient and soft light as the app icon.
+            // Same silver gradient and soft white light as the app icon.
             const g = c.createLinearGradient(width*0.74, height*0.26, width*0.26, height*0.76);
-            g.addColorStop(0, Theme.ember); g.addColorStop(0.45, Theme.brand); g.addColorStop(1, Theme.accent);
+            g.addColorStop(0, Theme.sheen); g.addColorStop(0.45, Theme.accentEnd); g.addColorStop(1, Theme.edge);
             c.strokeStyle = g;
-            c.shadowColor = Theme.alpha(Theme.brand, 0.55); c.shadowBlur = s*0.12;
+            c.shadowColor = Theme.alpha(Theme.sheen, 0.4); c.shadowBlur = s*0.12;
             c.stroke();
         }
     }

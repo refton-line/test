@@ -43,7 +43,7 @@ Item {
                 centerX: rim.width / 2; centerY: rim.height / 2
                 angle: rim.angle
                 GradientStop { position: 0.0; color: Theme.alpha(rim.color, 1) }
-                GradientStop { position: 0.12; color: Theme.alpha(Theme.ember, 0.85) }
+                GradientStop { position: 0.12; color: Theme.alpha(Theme.sheen, 0.85) }
                 GradientStop { position: 0.32; color: Theme.alpha(rim.color, 0.3) }
                 GradientStop { position: 0.68; color: Theme.alpha(rim.color, 0.3) }
                 GradientStop { position: 0.88; color: Theme.alpha(rim.color, 0.7) }

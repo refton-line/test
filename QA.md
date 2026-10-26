@@ -1,4 +1,8 @@
-# C clicker 0.7.1 Glow: QA
+# C clicker 0.8.0 Silver: QA
+
+## Current 0.8.0 palette
+Palette, icon and C mark only; no logic or motion changes. `scripts/audit-ui.py` passes (theme "Graphite / Silver"; the lowest ratio is controlBorder on accentSoft at 3.29 against a 3.0 minimum). The focus check on the primary face now uses focusOnAccent. All eight captures plus adaptive pass, including the settle and close-completion audits and NATIVE_ICON_PASS. The icon in the cross-built EXE is byte-identical to assets/app.ico in all nine sizes. Captures of every page and dialog were reviewed for leftovers of the old colours. One was found and removed: a warm-white glint dot on the icon.
+
 
 ## Current 0.7.1 icon and startup card
 - `NATIVE_ICON_PASS`: QGuiApplication::windowIcon() loaded from the embedded app.ico exposes all nine sizes (16, 20, 24, 32, 40, 48, 64, 128, 256).

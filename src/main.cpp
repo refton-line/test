@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
     app.setApplicationDisplayName("C clicker");
     app.setOrganizationName("ObsidianClick");
     app.setApplicationName("ObsidianClick");
-    app.setApplicationVersion("0.7.1-glow");
+    app.setApplicationVersion("0.8.0-silver");
     app.setWindowIcon(QIcon(":/qt/qml/CClicker/assets/app.ico"));
     QFontDatabase::addApplicationFont(":/qt/qml/CClicker/assets/fonts/Manrope.ttf");
     QFontDatabase::addApplicationFont(":/qt/qml/CClicker/assets/fonts/JetBrainsMono.ttf");

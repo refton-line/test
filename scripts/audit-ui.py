@@ -20,7 +20,7 @@ for bg in ['canvas','workspace','rail','surface','surfaceRaised','accentSoft']:
   pairs.append((fg,bg,4.5))
  for fg in ['focus','controlBorder']:
   pairs.append((fg,bg,3))
-pairs += [('accentInk','accent',4.5),('accentInk','accentEnd',4.5),('accentInk','accentHover',4.5),('accentInk','primaryHint',4.5),('danger','surface',4.5),('focus','accent',3),('focus','accentHover',3)]
+pairs += [('accentInk','accent',4.5),('accentInk','accentEnd',4.5),('accentInk','accentHover',4.5),('accentInk','primaryHint',4.5),('danger','surface',4.5),('focusOnAccent','accent',3),('focusOnAccent','accentHover',3)]
 for bg in ['canvas','workspace','rail','surface','surfaceRaised','accentSoft']:
  pairs.append(('brand',bg,3))
 errors=[];results=[]
@@ -50,6 +50,6 @@ identities=[k['v'] for k in keys]
 if len(set(identities)) != len(identities): errors.append('Duplicate virtual keyboard identity')
 if any('k' in k or 'm' in k for k in keys): errors.append('Legacy duplicate keyboard fields returned')
 if (root/'assets/info.svg').exists(): errors.append('Unused info asset returned')
-report={'theme':'Clean / Red Black','contrast':results,'icons_checked':len(icons),'errors':errors,'note':'Disabled controls are exempt from AA; motion and native layout are verified by the capture harness.'}
+report={'theme':'Graphite / Silver','contrast':results,'icons_checked':len(icons),'errors':errors,'note':'Disabled controls are exempt from AA; motion and native layout are verified by the capture harness.'}
 print(json.dumps(report,ensure_ascii=False,indent=2))
 sys.exit(bool(errors))

@@ -2,38 +2,40 @@ pragma Singleton
 import QtQuick
 
 QtObject {
-    // Ember / Graphite (0.7). Cool blue-graphite surfaces so warm light reads as
-    // light; ember red is the brand and the primary action. Each click mode owns a
-    // hue that drives every glow, so the mode is legible from across the room.
-    readonly property color canvas: "#07080b"
-    readonly property color workspace: "#0a0c10"
-    readonly property color chrome: "#08090d"
-    readonly property color surface: "#10131a"
-    readonly property color surfaceHover: "#161a23"
-    readonly property color surfaceRaised: "#1b2030"
-    readonly property color rail: "#0c0e14"
-    readonly property color hairline: "#1f2431"
-    readonly property color rimLight: "#2c3346"
-    readonly property color controlBorder: "#646d82"
-    readonly property color ink: "#edf0f6"
-    readonly property color muted: "#8b93a7"
-    readonly property color faint: "#5a6175"
-    readonly property color brand: "#ff4d5e"
-    readonly property color ember: "#ff7a45"
-    readonly property color accent: "#c8283f"
-    readonly property color accentEnd: "#c63a27"
-    readonly property color accentHover: "#d42d45"
-    readonly property color accentInk: "#fff4f2"
-    readonly property color accentSoft: "#2a1520"
-    readonly property color focus: "#e6eaf3"
-    readonly property color danger: "#ff8a96"
+    // Graphite / Silver (0.8). Neutral grey surfaces, white light. The primary
+    // action is a light silver face with near-black text; glows are white. Modes
+    // differ by brightness, from steel to pure white, so the hottest mode glows most.
+    readonly property color canvas: "#08090a"
+    readonly property color workspace: "#0b0c0e"
+    readonly property color chrome: "#090a0b"
+    readonly property color surface: "#121316"
+    readonly property color surfaceHover: "#191a1e"
+    readonly property color surfaceRaised: "#1f2126"
+    readonly property color rail: "#0d0e10"
+    readonly property color hairline: "#24262b"
+    readonly property color rimLight: "#3d4047"
+    readonly property color controlBorder: "#74777f"
+    readonly property color ink: "#f2f3f5"
+    readonly property color muted: "#9c9fa7"
+    readonly property color faint: "#666970"
+    readonly property color brand: "#eef0f4"
+    readonly property color sheen: "#ffffff"
+    readonly property color accent: "#eceef2"
+    readonly property color accentEnd: "#c3c7cf"
+    readonly property color accentHover: "#ffffff"
+    readonly property color accentInk: "#0b0c0f"
+    readonly property color accentSoft: "#26282e"
+    readonly property color focus: "#e8eaee"
+    // Focus ring on the light primary face.
+    readonly property color focusOnAccent: "#0b0c0f"
+    // Errors keep a soft red: a fault has to read as a fault even in a grey UI.
+    readonly property color danger: "#f2a4a4"
     readonly property color clear: "transparent"
-    readonly property color edge: "#7d859a"
-    readonly property color primaryHint: "#a81f34"
-    // Mode hues: Legit is cool and calm, Blatant is the hot brand red, Custom is violet.
-    readonly property color legit: "#2fd6c3"
-    readonly property color blatant: "#ff4d5e"
-    readonly property color custom: "#a48bff"
+    readonly property color edge: "#868991"
+    readonly property color primaryHint: "#adb2bc"
+    readonly property color legit: "#aab1bd"
+    readonly property color blatant: "#ffffff"
+    readonly property color custom: "#7c8494"
     function modeColor(mode) { return mode === 0 ? legit : mode === 2 ? custom : blatant; }
     function alpha(c, a) { return Qt.rgba(c.r, c.g, c.b, a); }
     readonly property string sans: "Manrope"

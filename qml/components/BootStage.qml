@@ -97,7 +97,7 @@ Item {
             }
             ShapePath {
                 strokeWidth: ring.w
-                strokeColor: Qt.tint(Theme.brand, Theme.alpha(Theme.ember, 0.35 * boot.flare))
+                strokeColor: Qt.tint(Theme.brand, Theme.alpha(Theme.sheen, 0.35 * boot.flare))
                 capStyle: ShapePath.RoundCap
                 fillColor: Theme.clear
                 PathAngleArc { centerX: boot.cx; centerY: boot.cy; radiusX: ring.r; radiusY: ring.r; startAngle: -90; sweepAngle: ring.sweep }
@@ -110,7 +110,7 @@ Item {
             y: boot.cy + ring.r * Math.sin(a) - height / 2
             width: 8; height: 8
             visible: ring.sweep > 2
-            Bloom { anchors.fill: parent; radius: 4; color: Theme.ember; spread: 10; peak: 0.45; strength: 0.6 + 0.4 * boot.flare }
+            Bloom { anchors.fill: parent; radius: 4; color: Theme.sheen; spread: 10; peak: 0.45; strength: 0.6 + 0.4 * boot.flare }
             Rectangle { anchors.fill: parent; radius: 4; color: Theme.accentInk }
         }
     }
