@@ -7,6 +7,8 @@ import "Motion.js" as Motion
 Item {
     id: strip
     property var gaps: []
+    property color hue: Theme.accent
+    Behavior on hue { ColorAnimation { duration: Theme.hueShift } }
     readonly property real low: gaps.length ? Math.min.apply(null, gaps) : 0
     readonly property real high: gaps.length ? Math.max.apply(null, gaps) : 0
     implicitHeight: 52
@@ -39,10 +41,12 @@ Item {
                         : bars.height * (0.22 + 0.78 * (modelData - strip.low) / span)
                 anchors.bottom: parent.bottom
                 radius: 1.5
-                color: Theme.accent
+                color: strip.hue
                 opacity: 0.45 + 0.55 * (1 - index / strip.gaps.length)
                 // A new plan ripples left to right instead of all bars jumping at once.
+                // Hidden strips (other modes, other pages) just jump; no work off screen.
                 Behavior on height {
+                    enabled: strip.visible
                     SequentialAnimation {
                         PauseAnimation { duration: index * 6 }
                         NumberAnimation { duration: Theme.pageIn; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.decelerateCurve }

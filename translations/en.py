@@ -1,5 +1,15 @@
 # Russian source -> English. (context, source) keys override plain source keys.
 T = {
+"КПС": "CPS",
+"Стоп · %1": "Stop · %1",
+"Нажмите или %1": "Click or press %1",
+"Режим": "Mode",
+"Как рука": "Human-like",
+"Максимум": "Maximum",
+"Рецепт": "Recipe",
+"Диапазон КПС": "CPS range",
+"Последние события": "Recent events",
+"Событий пока нет": "No events yet",
 "Загрузка приложения": "Loading application",
 "Сохранённые параметры отклонены: %1": "Saved settings rejected: %1",
 "Не удалось подключить ввод клавиатуры.": "Could not connect keyboard input.",

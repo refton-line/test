@@ -93,6 +93,10 @@ Popup {
                     objectName: "draftChip" + modelData
                     text: picker.engine.keyName(modelData)
                     checked: true
+                    // Each captured key lands as a chip with a small spring.
+                    property bool landed: false
+                    Component.onCompleted: landed = true
+                    scale: !landed ? 0.6 : down ? 0.965 : 1
                     onClicked: picker.choose(modelData)
                     Accessible.name: (picker.combination ? qsTr("Убрать %1") : qsTr("Выбрать %1")).arg(text)
                 }

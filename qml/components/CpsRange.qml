@@ -7,6 +7,8 @@ import "Motion.js" as Motion
 RangeSlider {
     id: control
     property var engine
+    property color hue: Theme.accent
+    Behavior on hue { ColorAnimation { duration: Theme.hueShift } }
     from: 1; to: 30; stepSize: 1
     snapMode: RangeSlider.SnapAlways
     implicitHeight: Theme.control
@@ -36,7 +38,7 @@ RangeSlider {
                 x: control.low * parent.width
                 width: (control.high - control.low) * parent.width
                 height: parent.height; radius: 3
-                color: Theme.accent
+                color: control.hue
             }
         }
         Repeater {

@@ -1,4 +1,14 @@
-# C clicker 0.6.1 Motion: QA
+# C clicker 0.7.0 Glow: QA
+
+## Current 0.7.0 design, glow and control model
+No engine or storage changes; 725 unit assertions unchanged; translations_complete now covers 236 messages. All eight capture modes pass plus adaptive at 150 %. New in the harness:
+- `assertSettled` after opening, page change, mode change, error banner, edge glow off, and both language switches: no running QQuickAbstractAnimation in the tree, Stage opacities exactly 0/1 with hidden stages invisible, edge glow invisible, two frames 150 ms apart identical.
+- `CloseAudit` (motion and window captures) at the real QCloseEvent: expansion 0, dismissal 0, C erase 1, every pixel of the last frame clear. Prints `NATIVE_CLOSE_COMPLETE_PASS`.
+- Motion capture also checks the tab pill and light, the mode selection frame, edge glow up and down, that the ring light turns while live and rests at 0 degrees after.
+The running visuals are exercised through a capture-only preview flag (`glowDemo`, guarded by `uiCapture`); the engine itself cannot send input under the harness.
+
+A real-time recording (Xvfb + xcompmgr, xcb, OpenGL via llvmpipe, `--capture-motion-reel`) was reviewed frame by frame: opening cascade, tab and page travel, mode hue crossfade, edge glow while running in all three hues, error rise/leave, and a close that ends on the desktop with nothing left. It found two issues the static captures could not: the draw-in arc popping at full brightness at the start of a close, and a page overlap long enough to read as a double exposure. Both fixed and re-recorded.
+
 
 ## Current 0.6.1 motion system
 No engine, storage or translation changes (`translations_complete` still 232 messages; 725 unit assertions unchanged). New native capture `--capture-motion-tests` (`NATIVE_MOTION_UI_PASS`): right after a nav click the new page already exists while the old one is still visible (no blank gap); after settling the old page is hidden, the rail pill sits on the new item and the marker is back to 18px, centred; the mode thumb slides to the chosen segment's exact geometry; mode bodies settle; the error banner rises to full opacity and leaves after dismiss; during the close, at two points of the timeline, content progress never exceeds shell progress and the C stays at the shell-corner position. All eight capture modes pass, plus adaptive at 150 %.

@@ -2,27 +2,40 @@ pragma Singleton
 import QtQuick
 
 QtObject {
-    // Red / Black: neutral black surfaces; deep crimson only for actions and selection.
-    readonly property color canvas: "#090909"
-    readonly property color workspace: "#0c0c0d"
-    readonly property color surface: "#141415"
-    readonly property color surfaceHover: "#1c1c1e"
-    readonly property color surfaceRaised: "#301317"
-    readonly property color rail: "#070707"
-    readonly property color hairline: "#272727"
-    readonly property color controlBorder: "#858585"
-    readonly property color ink: "#f0f0f0"
-    readonly property color muted: "#b5b5b5"
-    readonly property color brand: "#b83e4a"
-    readonly property color accent: "#8e1b25"
-    readonly property color accentHover: "#a42530"
-    readonly property color accentInk: "#fff1f3"
-    readonly property color accentSoft: "#331318"
-    readonly property color focus: "#d3d3d3"
-    readonly property color danger: "#e599a1"
+    // Ember / Graphite (0.7). Cool blue-graphite surfaces so warm light reads as
+    // light; ember red is the brand and the primary action. Each click mode owns a
+    // hue that drives every glow, so the mode is legible from across the room.
+    readonly property color canvas: "#07080b"
+    readonly property color workspace: "#0a0c10"
+    readonly property color chrome: "#08090d"
+    readonly property color surface: "#10131a"
+    readonly property color surfaceHover: "#161a23"
+    readonly property color surfaceRaised: "#1b2030"
+    readonly property color rail: "#0c0e14"
+    readonly property color hairline: "#1f2431"
+    readonly property color rimLight: "#2c3346"
+    readonly property color controlBorder: "#646d82"
+    readonly property color ink: "#edf0f6"
+    readonly property color muted: "#8b93a7"
+    readonly property color faint: "#5a6175"
+    readonly property color brand: "#ff4d5e"
+    readonly property color ember: "#ff7a45"
+    readonly property color accent: "#c8283f"
+    readonly property color accentEnd: "#cf3f2a"
+    readonly property color accentHover: "#dc3249"
+    readonly property color accentInk: "#fff4f2"
+    readonly property color accentSoft: "#2a1520"
+    readonly property color focus: "#e6eaf3"
+    readonly property color danger: "#ff8a96"
     readonly property color clear: "transparent"
-    readonly property color edge: "#a0a0a0"
-    readonly property color primaryHint: "#68121a"
+    readonly property color edge: "#7d859a"
+    readonly property color primaryHint: "#a81f34"
+    // Mode hues: Legit is cool and calm, Blatant is the hot brand red, Custom is violet.
+    readonly property color legit: "#2fd6c3"
+    readonly property color blatant: "#ff4d5e"
+    readonly property color custom: "#a48bff"
+    function modeColor(mode) { return mode === 0 ? legit : mode === 2 ? custom : blatant; }
+    function alpha(c, a) { return Qt.rgba(c.r, c.g, c.b, a); }
     readonly property string sans: "Manrope"
     readonly property string mono: "JetBrains Mono"
     readonly property int small: 14
@@ -43,7 +56,7 @@ QtObject {
     readonly property int pageFade: 220
     readonly property int pageOut: 120
     readonly property int pageFadeOut: 90
-    readonly property int pageOverlap: 60
+    readonly property int pageOverlap: 30
     readonly property int pageRise: 18
     readonly property int modeTravel: 24
     readonly property int railTravel: 340
@@ -52,11 +65,20 @@ QtObject {
     readonly property int dialogExit: 130
     readonly property int languageOut: 110
     readonly property int languageIn: 280
+    readonly property int glowIn: 420
+    readonly property int glowOut: 320
+    readonly property int hueShift: 480
+    readonly property int rimTurn: 4800
+    readonly property int heroTurn: 9000
+    readonly property int breathe: 1600
+    readonly property int glint: 700
+    readonly property int ripple: 900
     readonly property int reveal: 560
     readonly property int baseWidth: 1160
     readonly property int baseHeight: 800
     readonly property int splashWidth: 480
     readonly property int splashHeight: 340
-    readonly property int railWidth: 172
+    readonly property int titleHeight: 64
+    readonly property int statusHeight: 48
     readonly property int gutter: 32
 }

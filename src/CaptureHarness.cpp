@@ -17,6 +17,9 @@
 #include <QQuickWindow>
 #include <QScreen>
 #include <QTimer>
+#include <cmath>
+#include <QEventLoop>
+#include <QSet>
 namespace {
 QQuickItem *find(QQuickItem *item, const QString &name) {
     if (item->objectName() == name)
@@ -64,6 +67,90 @@ void click(QQuickWindow *win, const QString &name) {
     if (!item || !QMetaObject::invokeMethod(item, "click"))
         qFatal("UI action not found: %s", qPrintable(name));
 }
+// ---- Settle audit: every animation must finish completely ----
+QString describe(QObject *o) {
+    QStringList chain;
+    for (QObject *p = o; p && chain.size() < 4; p = p->parent())
+        chain << QString("%1(%2)").arg(p->metaObject()->className(), p->objectName());
+    return chain.join(" < ");
+}
+QStringList runningAnimations(QQuickWindow *win) {
+    QSet<QObject *> seen;
+    QStringList names;
+    std::function<void(QObject *)> visit = [&](QObject *o) {
+        if (!o || seen.contains(o)) return;
+        seen.insert(o);
+        if (o->inherits("QQuickAbstractAnimation") && o->property("running").toBool())
+            names << describe(o);
+        for (QObject *c : o->children()) visit(c);
+        if (auto *item = qobject_cast<QQuickItem *>(o))
+            for (auto *c : item->childItems()) visit(c);
+    };
+    visit(win);
+    visit(win->contentItem());
+    return names;
+}
+// Idle means: nothing loops, pages and glows are fully shown or fully gone, and
+// two frames 150 ms apart are pixel-identical.
+void assertSettled(QQuickWindow *win, const char *where) {
+    const auto running = runningAnimations(win);
+    if (!running.isEmpty())
+        qFatal("Not settled (%s), still running: %s", where, qPrintable(running.join("; ")));
+    std::function<void(QQuickItem *)> check = [&](QQuickItem *item) {
+        const QString name = item->objectName();
+        const qreal o = item->opacity();
+        if ((name.startsWith("page") || name.endsWith("Body")) && item->property("current").isValid()) {
+            if ((o > 0.001 && o < 0.999) || (o <= 0.001 && item->isVisible()))
+                qFatal("Not settled (%s): %s stuck at opacity %f", where, qPrintable(name), o);
+        }
+        if (name == "edgeGlow" && (o > 0.001 || item->isVisible()))
+            qFatal("Not settled (%s): edge glow still lit (%f)", where, o);
+        for (auto *c : item->childItems()) check(c);
+    };
+    check(win->contentItem());
+    const QImage a = win->grabWindow();
+    QEventLoop pause;
+    QTimer::singleShot(150, &pause, &QEventLoop::quit);
+    pause.exec();
+    const QImage b = win->grabWindow();
+    if (a != b) {
+        a.save(QDir::temp().filePath("settle-a.png"));
+        b.save(QDir::temp().filePath("settle-b.png"));
+        qFatal("Not settled (%s): the picture is still changing", where);
+    }
+}
+// At the moment the window really closes, the exit must have played out fully:
+// timeline at 0, card dissolved, C erased and not a single visible pixel left.
+class CloseAudit : public QObject {
+  public:
+    explicit CloseAudit(QQuickWindow *w) : QObject(w), m_win(w) {}
+    bool eventFilter(QObject *object, QEvent *event) override {
+        if (object != m_win || event->type() != QEvent::Close || !m_win->property("allowClose").toBool())
+            return false;
+        auto *mark = find(m_win->contentItem(), "cmark");
+        if (m_win->property("expansion").toReal() != 0 || m_win->property("dismissal").toReal() != 0 ||
+            !mark || mark->property("erase").toReal() < 0.999)
+            qFatal("Close ended before its animation finished");
+        // With an alpha surface every pixel must be transparent. Offscreen surfaces
+        // are RGB32, where "transparent" reads as pure black: then every pixel must be
+        // exactly the clear colour (the UI itself never paints pure black).
+        const QImage grabbed = m_win->grabWindow();
+        const bool alpha = grabbed.hasAlphaChannel();
+        const QImage last = grabbed.convertToFormat(QImage::Format_ARGB32);
+        int lit = 0;
+        for (int y = 0; y < last.height(); ++y) {
+            const auto *row = reinterpret_cast<const QRgb *>(last.constScanLine(y));
+            for (int x = 0; x < last.width(); ++x)
+                lit += alpha ? qAlpha(row[x]) > 0 : (row[x] & 0xffffff) != 0;
+        }
+        if (lit) qFatal("Close left %d visible pixels on the last frame", lit);
+        qInfo() << "NATIVE_CLOSE_COMPLETE_PASS (timeline 0, card dissolved, C erased, last frame fully transparent)";
+        return false;
+    }
+
+  private:
+    QQuickWindow *m_win;
+};
 } // namespace
 void runCaptureHarness(QQuickWindow *win, const QString &output, ClickController *engine,
                        ConfigStore *configs, LanguageController *language) {
@@ -91,6 +178,7 @@ void runCaptureHarness(QQuickWindow *win, const QString &output, ClickController
     };
     auto shot = [=](const QString &name) { snapshot(win, output + "/" + name + ".png"); };
     if (QCoreApplication::arguments().contains("--capture-window-tests")) {
+        win->installEventFilter(new CloseAudit(win));
         at(1600, [=] { shot("windowed"); });
         at(1800, [=] { click(win, "fullscreenButton"); });
         at(2200, [=] {
@@ -207,6 +295,7 @@ void runCaptureHarness(QQuickWindow *win, const QString &output, ClickController
                 !engine->modeSummary().startsWith(QStringLiteral("Легит")) ||
                 win->property("languagePhase").toReal() < 0.99)
                 qFatal("Russian UI not applied");
+            assertSettled(win, "language switch to Russian");
             shot("language-ru");
             click(win, "nav0");
         });
@@ -219,6 +308,7 @@ void runCaptureHarness(QQuickWindow *win, const QString &output, ClickController
         at(4900, [=] { click(win, "language_en"); });
         at(5300, [=] {
             if (language->language() != "en" || engine->modeSummary() != "Legit · 9–13 CPS") qFatal("Switch back to English failed");
+            assertSettled(win, "language switch back to English");
             click(win, "nav0");
         });
         at(5700, [=] { click(win, "limitsButton"); });
@@ -232,19 +322,26 @@ void runCaptureHarness(QQuickWindow *win, const QString &output, ClickController
     // Recording run: the motion sequence at a viewing pace, with no window grabs that
     // would stall frames. Uses the relative step runner so a busy frame cannot bunch steps.
     if (QCoreApplication::arguments().contains("--capture-motion-reel")) {
-        const QStringList clicks = {"nav2", "nav3", "nav0", "mode1", "mode2", "mode0",
-                                    "legitPreset3", "legitPreset1", "nav4", "nav0"};
-        int t = 2000;
+        const QStringList clicks = {"nav2", "nav3", "nav4", "nav0", "mode1", "mode2", "mode0",
+                                    "legitPreset3", "legitPreset1"};
+        int t = 2200;
         for (const auto &name : clicks) {
             at(t, [=] { click(win, name); });
-            t += 750;
+            t += 800;
         }
-        at(t, [=] { engine->applyBindings(0, 0, 119, 0); });
-        at(t + 1000, [=] { click(win, "dismissError"); });
-        at(t + 1800, [=] { click(win, "closeButton"); });
+        // Running visuals (preview only): the glow follows the mode hue live.
+        at(t, [=] { win->setProperty("glowDemo", true); });
+        at(t + 2600, [=] { click(win, "mode1"); });
+        at(t + 4600, [=] { click(win, "mode2"); });
+        at(t + 6200, [=] { win->setProperty("glowDemo", false); });
+        at(t + 7000, [=] { click(win, "mode0"); });
+        at(t + 7800, [=] { engine->applyBindings(0, 0, 119, 0); });
+        at(t + 9000, [=] { click(win, "dismissError"); });
+        at(t + 10000, [=] { click(win, "closeButton"); });
         return;
     }
     if (QCoreApplication::arguments().contains("--capture-motion-tests")) {
+        // Under --capture-slow, steps after 1600 ms run at 3x: 20 ms here is 60 ms real.
         const auto sceneRect = [=](const QString &name) {
             auto *item = find(win->contentItem(), name);
             if (!item) qFatal("Motion item missing: %s", qPrintable(name));
@@ -252,45 +349,71 @@ void runCaptureHarness(QQuickWindow *win, const QString &output, ClickController
         };
         const auto near = [](qreal a, qreal b) { return qAbs(a - b) < 0.75; };
         const auto opacity = [=](const QString &name) { return find(win->contentItem(), name)->opacity(); };
+        win->installEventFilter(new CloseAudit(win));
         at(1700, [=] {
-            if (!near(sceneRect("railPill").y(), sceneRect("nav0").y())) qFatal("Rail pill is not on the selected item");
+            assertSettled(win, "after opening");
+            const QRectF pill = sceneRect("tabPill"), tab = sceneRect("nav0");
+            if (!near(pill.x(), tab.x()) || !near(pill.width(), tab.width())) qFatal("Tab pill is not on the selected tab");
             click(win, "nav2");
-            // Overlap, not sequence: the new page exists at once while the old one is still on screen.
             if (!find(win->contentItem(), "page0")->isVisible() || !find(win->contentItem(), "editStartBinding"))
                 qFatal("Page change has a blank gap");
         });
-        at(1760, [=] { shot("motion-page-mid"); });
-        at(2300, [=] {
+        at(1720, [=] { shot("motion-page-mid"); });
+        at(1900, [=] {
             if (find(win->contentItem(), "page0")->isVisible() || opacity("page2") < 0.999)
                 qFatal("Page transition did not settle");
-            const QRectF pill = sceneRect("railPill"), marker = sceneRect("railMarker");
-            if (!near(pill.y(), sceneRect("nav2").y()) || !near(marker.height(), 18) ||
-                !near(marker.center().y(), pill.center().y()))
-                qFatal("Rail pill/marker did not settle on the new item");
+            const QRectF pill = sceneRect("tabPill"), tab = sceneRect("nav2"), glow = sceneRect("tabGlow");
+            if (!near(pill.x(), tab.x()) || !near(pill.width(), tab.width()) || !near(glow.center().x(), pill.center().x()) ||
+                !near(glow.width(), pill.width() - 28))
+                qFatal("Tab pill/light did not settle on the new tab");
+            assertSettled(win, "page change");
             click(win, "nav0");
         });
-        at(2800, [=] {
-            if (!near(sceneRect("modeFrameThumb").x(), sceneRect("mode0").x())) qFatal("Mode thumb misplaced");
+        at(2100, [=] {
+            if (!near(sceneRect("modeSelection").x(), sceneRect("mode0").x())) qFatal("Mode selection misplaced");
             click(win, "mode2");
         });
-        at(2830, [=] { shot("motion-mode-mid"); });
-        at(3300, [=] {
-            const QRectF thumb = sceneRect("modeFrameThumb"), target = sceneRect("mode2");
-            if (!near(thumb.x(), target.x()) || !near(thumb.width(), target.width()))
-                qFatal("Mode thumb did not slide to the selected segment");
+        at(2110, [=] { shot("motion-mode-mid"); });
+        at(2300, [=] {
+            const QRectF frame = sceneRect("modeSelection"), target = sceneRect("mode2");
+            if (!near(frame.x(), target.x()) || !near(frame.width(), target.width()))
+                qFatal("Mode selection did not slide to the chosen tile");
             if (opacity("customBody") < 0.999 || find(win->contentItem(), "legitBody")->isVisible())
                 qFatal("Mode bodies did not settle");
+        });
+        at(2400, [=] {
+            assertSettled(win, "mode change");
             click(win, "mode0");
             engine->applyBindings(0, 0, 119, 0); // a real validation error for the banner
         });
-        at(3330, [=] { shot("motion-error-rise"); });
-        at(3800, [=] {
+        at(2410, [=] { shot("motion-error-rise"); });
+        at(2600, [=] {
             auto *banner = find(win->contentItem(), "generalError");
             if (!banner->property("shown").toBool() || banner->opacity() < 0.999) qFatal("Error banner did not rise");
             click(win, "dismissError");
         });
-        at(4300, [=] {
+        at(2800, [=] {
             if (find(win->contentItem(), "generalError")->isVisible()) qFatal("Error banner did not leave");
+            assertSettled(win, "error banner");
+            win->setProperty("glowDemo", true);
+        });
+        at(2820, [=] { shot("motion-glow-rise"); });
+        at(3000, [=] {
+            auto *rim = find(win->contentItem(), "edgeGlow");
+            if (!rim->isVisible() || rim->opacity() < 0.999) qFatal("Edge glow did not come up");
+            win->setProperty("spinProbe", find(win->contentItem(), "heroCore")->rotation());
+            shot("glow-live");
+        });
+        at(3050, [=] {
+            if (near(find(win->contentItem(), "heroCore")->rotation(), win->property("spinProbe").toReal()))
+                qFatal("Ring light is not turning while live");
+            win->setProperty("glowDemo", false);
+        });
+        at(3060, [=] { shot("motion-glow-fall"); });
+        at(3400, [=] {
+            const qreal rest = std::fmod(find(win->contentItem(), "heroCore")->rotation(), 360.0);
+            if (rest > 0.5 && rest < 359.5) qFatal("Ring light did not come to rest at the top (%f)", rest);
+            assertSettled(win, "glow off");
             click(win, "closeButton");
         });
         // Invariants of the closing choreography, true at any point of the timeline.
@@ -302,16 +425,15 @@ void runCaptureHarness(QQuickWindow *win, const QString &output, ClickController
             const qreal panelW = win->property("panelWidth").toReal(), panelH = win->property("panelHeight").toReal();
             auto *scene = mark->parentItem();
             const qreal ex = (scene->width() - panelW) / 2 + (panelW - mark->width()) / 2 * (1 - shell) + 20 * shell;
-            const qreal ey = (scene->height() - panelH) / 2 + 48 * (1 - shell) + 20 * shell;
+            const qreal ey = (scene->height() - panelH) / 2 + 48 * (1 - shell) + 18 * shell;
             if (!near(mark->x(), ex) || !near(mark->y(), ey)) qFatal("Close: the C left the shell corner");
             shot(frame);
         };
-        at(4340, [=] { closing("motion-close-early"); });
-        // ~300 ms into the close under --capture-slow: mid-fold, before the window is gone.
-        at(4400, [=] {
+        at(3440, [=] { closing("motion-close-early"); });
+        at(3500, [=] {
             closing("motion-close-fold");
-            qInfo() << "NATIVE_MOTION_UI_PASS (overlapping pages, rail pill and stretch marker, sliding thumb, "
-                       "mode bodies, error rise/leave, close order and C glued to the shell)";
+            qInfo() << "NATIVE_MOTION_UI_PASS (settle audits, overlapping pages, tab pill and light, sliding mode frame, "
+                       "mode bodies, error rise/leave, edge glow up/down, ring spin and rest, close order and C glued to the shell)";
         });
         return;
     }

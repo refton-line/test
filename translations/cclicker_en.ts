@@ -473,6 +473,45 @@
     </message>
 </context>
 <context>
+    <name>HeroRing</name>
+    <message>
+        <source>Остановить</source>
+        <translation>Stop</translation>
+    </message>
+    <message>
+        <source>Запустить</source>
+        <translation>Start</translation>
+    </message>
+    <message>
+        <source>Запуск через %1 с</source>
+        <translation>Starting in %1 s</translation>
+    </message>
+    <message>
+        <source>Идёт отправка</source>
+        <translation>Sending</translation>
+    </message>
+    <message>
+        <source>Готов</source>
+        <translation>Ready</translation>
+    </message>
+    <message>
+        <source>КПС</source>
+        <translation>CPS</translation>
+    </message>
+    <message>
+        <source>цель %1</source>
+        <translation>target %1</translation>
+    </message>
+    <message>
+        <source>Стоп · %1</source>
+        <translation>Stop · %1</translation>
+    </message>
+    <message>
+        <source>Нажмите или %1</source>
+        <translation>Click or press %1</translation>
+    </message>
+</context>
+<context>
     <name>KeyboardPicker</name>
     <message>
         <source>Назначение клавиши</source>
@@ -539,69 +578,6 @@
     </message>
 </context>
 <context>
-    <name>LiveMetrics</name>
-    <message>
-        <source>Сессия</source>
-        <translation>Session</translation>
-    </message>
-    <message>
-        <source>ЛЕГИТ</source>
-        <translation>LEGIT</translation>
-    </message>
-    <message>
-        <source>БЛАТАНТ</source>
-        <translation>BLATANT</translation>
-    </message>
-    <message>
-        <source>СВОЙ</source>
-        <translation>CUSTOM</translation>
-    </message>
-    <message>
-        <source>Запуск через %1 с</source>
-        <translation>Starting in %1 s</translation>
-    </message>
-    <message>
-        <source>Идёт отправка</source>
-        <translation>Sending</translation>
-    </message>
-    <message>
-        <source>Ожидание</source>
-        <translation>Idle</translation>
-    </message>
-    <message>
-        <source>Отправка / с</source>
-        <translation>Sent / s</translation>
-    </message>
-    <message>
-        <source>цель %1</source>
-        <translation>target %1</translation>
-    </message>
-    <message>
-        <source>Принято пар</source>
-        <translation>Pairs accepted</translation>
-    </message>
-    <message>
-        <source>Интервал</source>
-        <translation>Interval</translation>
-    </message>
-    <message>
-        <source> мс</source>
-        <translation> ms</translation>
-    </message>
-    <message>
-        <source>Отклонение</source>
-        <translation>Jitter</translation>
-    </message>
-    <message>
-        <source>Опоздание</source>
-        <translation>Lateness</translation>
-    </message>
-    <message>
-        <source>Пропуски</source>
-        <translation>Skipped</translation>
-    </message>
-</context>
-<context>
     <name>Main</name>
     <message>
         <source>Свернуть</source>
@@ -648,10 +624,6 @@
         <translation>Language</translation>
     </message>
     <message>
-        <source>Файлы</source>
-        <translation>Files</translation>
-    </message>
-    <message>
         <source>Открыть папку конфигураций</source>
         <translation>Open profiles folder</translation>
     </message>
@@ -666,6 +638,14 @@
     <message>
         <source>Повторить</source>
         <translation>Retry</translation>
+    </message>
+    <message>
+        <source>Запуск</source>
+        <translation>Start</translation>
+    </message>
+    <message>
+        <source>Стоп</source>
+        <translation>Stop</translation>
     </message>
 </context>
 <context>
@@ -756,10 +736,6 @@
 <context>
     <name>SettingsPanel</name>
     <message>
-        <source>Кликер</source>
-        <translation>Clicker</translation>
-    </message>
-    <message>
         <source>Легит</source>
         <translation>Legit</translation>
     </message>
@@ -784,10 +760,6 @@
         <translation>Your own recipe: interval, jitter, wave and delivery method.</translation>
     </message>
     <message>
-        <source>Кликов в секунду</source>
-        <translation>Clicks per second</translation>
-    </message>
-    <message>
         <source> / с</source>
         <translation> / s</translation>
     </message>
@@ -810,10 +782,6 @@
     <message>
         <source>Интервал в миллисекундах</source>
         <translation>Interval in milliseconds</translation>
-    </message>
-    <message>
-        <source>Интервал, мс → частота</source>
-        <translation>Interval, ms → rate</translation>
     </message>
     <message>
         <source>Удержание</source>
@@ -888,10 +856,6 @@
         <translation>Manual stop</translation>
     </message>
     <message>
-        <source>Остановить</source>
-        <translation>Stop</translation>
-    </message>
-    <message>
         <source>Запустить</source>
         <translation>Start</translation>
     </message>
@@ -922,6 +886,61 @@
     <message>
         <source>Готово</source>
         <translation>Done</translation>
+    </message>
+    <message>
+        <source>Режим</source>
+        <translation>Mode</translation>
+    </message>
+    <message>
+        <source>Как рука</source>
+        <translation>Human-like</translation>
+    </message>
+    <message>
+        <source>Максимум</source>
+        <translation>Maximum</translation>
+    </message>
+    <message>
+        <source>Рецепт</source>
+        <translation>Recipe</translation>
+    </message>
+    <message>
+        <source>Диапазон КПС</source>
+        <translation>CPS range</translation>
+    </message>
+</context>
+<context>
+    <name>StagePanel</name>
+    <message>
+        <source>Принято пар</source>
+        <translation>Pairs accepted</translation>
+    </message>
+    <message>
+        <source>Интервал</source>
+        <translation>Interval</translation>
+    </message>
+    <message>
+        <source> мс</source>
+        <translation> ms</translation>
+    </message>
+    <message>
+        <source>Отклонение</source>
+        <translation>Jitter</translation>
+    </message>
+    <message>
+        <source>Опоздание</source>
+        <translation>Lateness</translation>
+    </message>
+    <message>
+        <source>Пропуски</source>
+        <translation>Skipped</translation>
+    </message>
+    <message>
+        <source>Последние события</source>
+        <translation>Recent events</translation>
+    </message>
+    <message>
+        <source>Событий пока нет</source>
+        <translation>No events yet</translation>
     </message>
 </context>
 <context>

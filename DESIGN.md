@@ -41,6 +41,17 @@ validKey and validChordKey agree on physical side-specific modifiers and PrintSc
 ## AltGrCapture 0.4.7
 No new visual controls. An editor-only Qt right-Alt bridge supplements Raw Input capture. Press identity uses explicit AltGr or Windows right-side native metadata, not translated modifier flags. The editor selects on held-state union rising edges to coalesce both deliveries; releasing one source does not release another. Background matching and storage remain unchanged.
 
+## Ember / Graphite and the control model 0.7.0
+Research (see REFERENCES): motion references from software, not static shots. The new Raycast teaser (frame-sampled) for focused surfaces with a soft light edge and spring-like key chips; Linear changelog videos for depth, shared-axis travel and focus pulls; Wootility v5 for the control model (features moved to a clear navigation surface, a quick-settings area, profiles as an overview); the Apple Intelligence edge light for the glow grammar (layered core + bloom + wash strokes, a rotating conical colour field, tied to a real state and absent when idle).
+
+Control model. Navigation becomes tabs in the title bar (one sliding pill, a light under it that stretches toward travel). The clicker page is split by role: the left panel holds everything adjustable (mode tiles, mode body, mouse button, limits); the right stage only starts and shows (hero ring, five metric tiles, last log lines). A status bar always shows the live start/stop hotkeys and the mode summary. Start is a 256 px ring, the largest target in the window; its mask is the disc only.
+
+Palette. Cool graphite surfaces (#07080b to #1b2030) so warm light reads as light; text #edf0f6 / #8b93a7 / #5a6175. Ember red #ff4d5e is the brand and primary action (gradient face #c8283f to #cf3f2a). Mode hues drive every glow: Legit #2fd6c3, Blatant #ff4d5e, Custom #a48bff, crossfaded over 480 ms on change.
+
+Glow. Bloom.qml: concentric rounded bands with quadratic falloff instead of a blur shader, identical on RHI and the software renderer. EdgeGlow: three PathRectangle strokes (34 px wash, 12 px bloom, 3 px core ring filled with a ConicalGradient that turns once per 4.8 s); clipped by the shell, so only the inner half shows. Hero ring: radial halo peaking at the ring, rotating conical core with a white glint, breathing level, ignition flare on start, a ripple per burst of accepted clicks (at most one per 240 ms), countdown arc with a pop per second. All infinite motion only runs while the engine is active, and stops by settling (the ring light eases to the top).
+
+Completion as an invariant. assertSettled (harness) after every transition: no running animation anywhere in the tree, stage/body opacities exactly 0 (and invisible) or 1, edge glow gone, and two frames 150 ms apart pixel-identical. CloseAudit at the real close: expansion 0, dismissal 0, C fully erased, zero visible pixels on the last frame. Fixes this found: off-screen rhythm strips animating forever after a mode change, the draw-in arc popping at full brightness when a close began, page overlap too long (now 30 ms).
+
 ## Motion system 0.6.1
 Motion is now a system, not a set of effects. One vocabulary of curves after the Material 3 easing tokens (standard 0.2/0/0/1 for surfaces changing in place, emphasized decelerate for arrivals, emphasized accelerate for exits), implemented once in `components/Motion.js` for both `NumberAnimation` (BezierSpline arrays) and JS-driven choreography; durations live in Theme. Springs only for direct manipulation (press, slider knobs).
 

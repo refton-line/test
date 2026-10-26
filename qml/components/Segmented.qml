@@ -12,9 +12,11 @@ Rectangle {
     property int current: -1
     property string prefix: ""
     property var names: []
+    property int columns: Math.max(1, model.length)
+    readonly property int rows: Math.max(1, Math.ceil(model.length / columns))
     signal activated(int index)
     implicitWidth: 300
-    implicitHeight: 50
+    implicitHeight: 6 + rows * 44 + (rows - 1) * 3
     radius: Theme.radius
     color: Theme.canvas
     border.color: Theme.hairline
@@ -37,19 +39,23 @@ Rectangle {
         objectName: frame.objectName + "Thumb"
         readonly property Item target: choices.count > 0 && frame.shown >= 0 ? choices.itemAt(frame.shown) : null
         x: target ? row.x + target.x : 0
-        y: row.y
+        y: target ? row.y + target.y : row.y
         width: target ? target.width : 0
-        height: row.height
+        height: target ? target.height : 0
         radius: Theme.radiusSmall
         color: Theme.surfaceRaised
+        Rim { inset: Theme.radiusSmall }
         opacity: frame.current >= 0 && target ? 1 : 0
         Behavior on x { enabled: frame.sliding; NumberAnimation { duration: Theme.thumbTravel; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.standardCurve } }
+        Behavior on y { enabled: frame.sliding; NumberAnimation { duration: Theme.thumbTravel; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.standardCurve } }
         Behavior on width { enabled: frame.sliding; NumberAnimation { duration: Theme.thumbTravel; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.standardCurve } }
         Behavior on opacity { NumberAnimation { duration: Theme.normal; easing.type: Easing.OutCubic } }
     }
-    RowLayout {
+    GridLayout {
         id: row
-        anchors.fill: parent; anchors.margins: 3; spacing: 3
+        anchors.fill: parent; anchors.margins: 3
+        columns: frame.columns
+        rowSpacing: 3; columnSpacing: 3
         Repeater {
             id: choices
             model: frame.model
@@ -57,7 +63,8 @@ Rectangle {
                 required property int index
                 required property var modelData
                 objectName: frame.names.length > index ? frame.names[index] : frame.prefix + index
-                Layout.fillWidth: true; Layout.preferredWidth: 1; Layout.fillHeight: true
+                Layout.fillWidth: true; Layout.preferredWidth: 1
+                Layout.fillHeight: true; Layout.preferredHeight: 44
                 segmented: true
                 fillChecked: false
                 text: modelData

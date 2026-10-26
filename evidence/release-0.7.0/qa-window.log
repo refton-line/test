@@ -1,1 +1,2 @@
 NATIVE_WINDOW_UI_PASS (fullscreen, work-area maximize, normal/maximized restore, resize, close stop, close fold)
+NATIVE_CLOSE_COMPLETE_PASS (timeline 0, card dissolved, C erased, last frame fully transparent)

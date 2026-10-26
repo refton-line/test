@@ -4,17 +4,24 @@ import QtQuick.Layouts
 import CClicker
 import "Motion.js" as Motion
 
-Item {
+// Left control panel: choose the mode, tune it, pick the button and limits.
+// The ring on the right only starts and shows; everything adjustable lives here.
+Rectangle {
     id: panel
     property var engine
+    radius: Theme.radiusLarge
+    color: Theme.surface
+    border.color: Theme.hairline
+    Rim {}
 
     readonly property bool idle: !engine.active
-    // Mode bodies take turns on the horizontal axis of the mode switch: the new
-    // body slides in from the side of the chosen segment, the old one leaves the other way.
+    readonly property real inner: width - 40
+    // Mode bodies take turns on the horizontal axis of the tiles: the new body
+    // slides in from the side of the chosen tile, the old one leaves the other way.
     property int settledMode: 0
     component ModeBody: Stage {
         property int mode
-        y: 88; width: parent.width; height: 284
+        x: 20; y: 196; width: panel.inner; height: 284
         horizontal: true
         travel: Theme.modeTravel
         current: panel.engine.clickMode === mode
@@ -29,31 +36,30 @@ Item {
             }
         }
     }
-    property real expectedShown: engine.expectedCps
-    Behavior on expectedShown { NumberAnimation { duration: Theme.thumbTravel; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.decelerateCurve } }
-    function rate(v) { return v.toLocaleString(Qt.locale(i18n.locale), 'f', 1) }
-
-    Label {
-        text: qsTr("Кликер")
-        font.pixelSize: Theme.title
-        font.weight: Font.DemiBold
+    component Caption: Label {
+        font.pixelSize: 11; font.weight: Font.DemiBold; font.letterSpacing: 1.1
+        font.capitalization: Font.AllUppercase
+        color: Theme.faint
     }
-    Segmented {
-        objectName: "modeFrame"
-        anchors.right: parent.right
-        y: -9; width: 336
-        prefix: "mode"
-        model: [qsTr("Легит"), qsTr("Блатант"), qsTr("Свой")]
+    component Readout: Label { font.family: Theme.mono; font.pixelSize: 13; color: Theme.muted }
+    function rate(v) { return v.toLocaleString(Qt.locale(i18n.locale), 'f', v < 100 ? 1 : 0) }
+
+    Caption { x: 20; y: 20; text: qsTr("Режим") }
+    ModePicker {
+        x: 20; y: 42; width: panel.inner
+        names: [qsTr("Легит"), qsTr("Блатант"), qsTr("Свой")]
+        hints: [qsTr("Как рука"), qsTr("Максимум"), qsTr("Рецепт")]
         current: panel.engine.clickMode
         enabled: panel.idle
         onActivated: index => panel.engine.clickMode = index
     }
     Label {
         objectName: "modeDescription"
-        y: 52; width: parent.width
-        elide: Text.ElideRight
+        x: 20; y: 146; width: panel.inner; height: 40
+        wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight
         color: Theme.muted
-        font.pixelSize: Theme.small
+        font.pixelSize: 12
+        lineHeight: 1.15
         text: [qsTr("Эмуляция мыши через SendInput: живой ритм, разброс и паузы, как у руки."),
                qsTr("Искусственные клики сообщениями окну под курсором: точная сетка, до 1000 / с."),
                qsTr("Свой рецепт: интервал, разброс, волна и способ доставки.")][panel.engine.clickMode] || ""
@@ -63,28 +69,22 @@ Item {
     ModeBody {
         objectName: "legitBody"
         mode: 0
-        Label {
-            x: 8; y: 0; height: 100
-            verticalAlignment: Text.AlignVCenter
-            text: panel.engine.cpsMin === panel.engine.cpsMax ? String(panel.engine.cpsMin)
-                  : panel.engine.cpsMin + "–" + panel.engine.cpsMax
-            font.family: Theme.mono; font.pixelSize: 60
-        }
-        Column {
-            anchors.right: parent.right; anchors.rightMargin: 20
-            y: 16; width: 156; spacing: 8
-            Label { text: qsTr("Кликов в секунду"); color: Theme.muted; font.pixelSize: Theme.small }
-            Label { text: "≈ " + panel.rate(panel.expectedShown) + qsTr(" / с"); font.family: Theme.mono; font.pixelSize: 24 }
+        Caption { y: 4; text: qsTr("Диапазон КПС") }
+        Readout {
+            anchors.right: parent.right; y: 2
+            text: (panel.engine.cpsMin === panel.engine.cpsMax ? String(panel.engine.cpsMin) : panel.engine.cpsMin + "–" + panel.engine.cpsMax) + " · ≈ " + panel.rate(panel.engine.expectedCps)
         }
         CpsRange {
             objectName: "cpsRange"
-            y: 104; width: parent.width
+            y: 24; width: parent.width
             engine: panel.engine
+            hue: Theme.legit
             enabled: panel.idle
         }
         Segmented {
             objectName: "legitPresets"
-            y: 160; width: parent.width
+            y: 80; width: parent.width
+            columns: 2
             prefix: "legitPreset"
             readonly property var ranges: [[6, 9], [9, 13], [13, 17], [17, 22]]
             model: [qsTr("Спокойно 6–9"), qsTr("Ровно 9–13"), qsTr("Быстро 13–17"), qsTr("Пик 17–22")]
@@ -94,7 +94,8 @@ Item {
         }
         RhythmStrip {
             objectName: "legitRhythm"
-            y: 230; width: parent.width; height: 54
+            hue: Theme.legit
+            y: 192; width: parent.width; height: 64
             gaps: panel.engine.rhythmPreview
         }
     }
@@ -103,26 +104,24 @@ Item {
     ModeBody {
         objectName: "blatantBody"
         mode: 1
-        NumberField {
-            objectName: "intervalField"
-            x: 8; y: 0
-            width: Math.min(328, parent.width - 208); height: 100
-            prominent: true
-            from: panel.engine.minIntervalMs; to: 10000; stepSize: 1
-            value: panel.engine.intervalMs
-            suffix: qsTr("Интервал в миллисекундах")
-            enabled: panel.idle
-            onValueModified: panel.engine.intervalMs = value
-        }
-        Column {
-            anchors.right: parent.right; anchors.rightMargin: 20
-            y: 16; width: 156; spacing: 8
-            Label { text: qsTr("Интервал, мс → частота"); color: Theme.muted; font.pixelSize: Theme.small }
-            Label { text: panel.rate(1000 / panel.engine.intervalMs) + qsTr(" / с"); font.family: Theme.mono; font.pixelSize: 24 }
+        RowLayout {
+            width: parent.width; spacing: 8
+            Label { text: qsTr("Интервал"); font.pixelSize: 14 }
+            Item { Layout.fillWidth: true }
+            Readout { text: panel.rate(1000 / panel.engine.intervalMs) + qsTr(" / с") }
+            NumberField {
+                objectName: "intervalField"
+                from: panel.engine.minIntervalMs; to: 10000; stepSize: 1
+                value: panel.engine.intervalMs
+                suffix: qsTr("Интервал в миллисекундах")
+                enabled: panel.idle
+                onValueModified: panel.engine.intervalMs = value
+            }
+            Label { text: qsTr("мс"); font.pixelSize: 14; color: Theme.muted; Layout.preferredWidth: 22 }
         }
         Segmented {
             objectName: "presetsFrame"
-            y: 108; width: parent.width
+            y: 60; width: parent.width
             readonly property var rates: [10, 50, 100, 200, 500]
             model: rates.map(v => v + qsTr(" / с"))
             names: rates.map(v => "preset" + v)
@@ -131,11 +130,10 @@ Item {
             onActivated: index => panel.engine.intervalMs = Math.round(1000 / rates[index])
         }
         RowLayout {
-            y: 172; width: parent.width; spacing: 8
+            y: 124; width: parent.width; spacing: 8
             Label { text: qsTr("Удержание"); Layout.fillWidth: true; font.pixelSize: 14 }
             NumberField {
                 objectName: "holdField"
-                implicitWidth: 148
                 from: 0
                 to: Math.max(0, Math.min(100, panel.engine.intervalMs - 1))
                 value: panel.engine.holdMs
@@ -143,10 +141,11 @@ Item {
                 enabled: panel.idle
                 onValueModified: panel.engine.holdMs = value
             }
-            Label { text: qsTr("мс"); font.pixelSize: 14; color: Theme.muted }
+            Label { text: qsTr("мс"); font.pixelSize: 14; color: Theme.muted; Layout.preferredWidth: 22 }
         }
         RhythmStrip {
-            y: 230; width: parent.width; height: 54
+            hue: Theme.blatant
+            y: 192; width: parent.width; height: 64
             gaps: panel.engine.rhythmPreview
         }
     }
@@ -159,7 +158,6 @@ Item {
         Row2 {
             y: 0
             Label { text: qsTr("Интервал"); Layout.fillWidth: true; font.pixelSize: 14 }
-            Label { text: "≈ " + panel.rate(1000 / panel.engine.intervalMs) + qsTr(" / с"); font.family: Theme.mono; font.pixelSize: 13; color: Theme.muted }
             NumberField {
                 objectName: "customIntervalField"
                 from: panel.engine.minIntervalMs; to: 10000; stepSize: 5
@@ -202,7 +200,7 @@ Item {
             Label { text: qsTr("Доставка"); Layout.fillWidth: true; font.pixelSize: 14 }
             Segmented {
                 objectName: "deliveryFrame"
-                Layout.preferredWidth: 288
+                Layout.preferredWidth: 220
                 prefix: "delivery"
                 model: [qsTr("Эмуляция"), qsTr("Сообщения")]
                 current: panel.engine.delivery
@@ -211,11 +209,11 @@ Item {
             }
         }
         Row2 {
-            y: 230
+            y: 228
             Label { text: qsTr("Темп"); Layout.fillWidth: true; font.pixelSize: 14 }
             Segmented {
                 objectName: "driftFrame"
-                Layout.preferredWidth: 288
+                Layout.preferredWidth: 220
                 prefix: "drift"
                 model: [qsTr("Ровный"), qsTr("Волна")]
                 current: panel.engine.drift ? 1 : 0
@@ -225,48 +223,29 @@ Item {
         }
     }
 
-    Rectangle {
-        y: 384
-        width: parent.width
-        height: 1
-        color: Theme.hairline
-    }
+    Rectangle { x: 20; y: 492; width: panel.inner; height: 1; color: Theme.hairline }
     RowLayout {
-        y: 400
-        width: parent.width
+        x: 20; y: 508; width: panel.inner
         spacing: 12
-        Label {
-            text: qsTr("Кнопка")
-            font.pixelSize: 14
-        }
+        Label { text: qsTr("Кнопка"); font.pixelSize: 14; Layout.fillWidth: true }
         Segmented {
             objectName: "mouseFrame"
-            Layout.preferredWidth: 288
+            Layout.preferredWidth: 270
             prefix: "mouse"
             model: [qsTr("Левая"), qsTr("Правая"), qsTr("Средняя")]
             current: panel.engine.mouseButton
             enabled: panel.idle
             onActivated: index => panel.engine.mouseButton = index
         }
-        Item { Layout.fillWidth: true }
-        ActionButton {
-            objectName: "limitsButton"
-            text: panel.engine.durationSec > 0 || panel.engine.countLimit > 0 ? qsTr("Заданы лимиты") : qsTr("Остановка вручную")
-            glyph: "settings"
-            enabled: panel.idle
-            onClicked: limits.open()
-        }
     }
     ActionButton {
-        y: 476
-        objectName: "startButton"
-        width: parent.width
-        height: 56
-        primary: true
-        glyph: panel.engine.active ? "square" : "play"
-        text: panel.engine.active ? qsTr("Остановить") : qsTr("Запустить")
-        enabled: panel.engine.available || panel.engine.active
-        onClicked: panel.engine.toggle()
+        objectName: "limitsButton"
+        x: 20; y: 572; width: panel.inner
+        outlined: true
+        text: panel.engine.durationSec > 0 || panel.engine.countLimit > 0 ? qsTr("Заданы лимиты") : qsTr("Остановка вручную")
+        glyph: "settings"
+        enabled: panel.idle
+        onClicked: limits.open()
     }
 
     Popup {
