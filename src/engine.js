@@ -464,8 +464,10 @@ export function evaluate(s){return new Pos(s).evaluate();}
 const TT=new Map();
 const TT_LIMIT=300000;
 
-export function search(state,{time=1500,maxDepth=7,history=[],onProgress=()=>{}}={}){
-  const started=performance.now(),deadline=started+time;
+export function search(state,{time=1500,maxDepth=7,history=[],onProgress=()=>{},spread=0}={}){
+  const started=performance.now();
+  const budget=Math.max(60,Math.round(time*(1+spread*(2*Math.random()-1))));
+  const deadline=started+budget;
   const f=new Pos(state);
   for(const entry of history){
     if(entry&&typeof entry==='object'&&entry.board)f.hist.push(new Pos(entry).hashKey());
@@ -513,7 +515,14 @@ export function search(state,{time=1500,maxDepth=7,history=[],onProgress=()=>{}}
     if(performance.now()>deadline)break;
   }
   nodes=searcher.nodes;
-  return {move:decode(best),depth:completed,nodes,score:bestScore,mate,elapsed:performance.now()-started};
+  const candidates=[];
+  for(const mv of order){
+    const score=scores.get(mv);
+    if(score===undefined)continue;
+    candidates.push({move:decode(mv),score});
+  }
+  candidates.sort((a,b)=>b.score-a.score);
+  return {move:decode(best),depth:completed,nodes,score:bestScore,mate,elapsed:performance.now()-started,candidates,budget};
 }
 
 function makeSearcher(f,deadline){
