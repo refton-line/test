@@ -246,7 +246,7 @@ function bindPanel(){
 function chips(id,list,settingName,onPick){
   const box=$(id);
   box.innerHTML=list.map(([v,label])=>`<button class="chip" data-value="${v}">${label}</button>`).join('');
-  const sync=()=>{for(const b of box.children)b.setAttribute('aria-pressed',String(b.dataset.value===String(settings[settingName])))}
+  const sync=()=>{for(const b of box.children)b.setAttribute('aria-pressed',String(b.dataset.value===String(settings[settingName])))};
   box.addEventListener('click',e=>{
     const b=e.target.closest('.chip');
     if(!b)return;
