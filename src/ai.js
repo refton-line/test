@@ -84,7 +84,7 @@ export function chooseMove(state,options={}){
   const pool=scored.slice(0,Math.min(scored.length,profile.top));
   let best=pool[0],top=-Infinity;
   for(const entry of pool){
-    const rating=entry.rating+(Math.random()*2-1)*profile.no出来的ise;
+    const rating=entry.rating+(Math.random()*2-1)*profile.noise;
     if(rating>top){top=rating;best=entry;}
   }
   return {...result,move:best.move,chosen:best.move,brilliant:best.brilliant};
