@@ -1,16 +1,10 @@
 import './styles.css';
 import {BoardScene} from './scene.js';
-import {initial,legal,apply,outcome,notation,key,inCheck,search} from './engine.js';
+import {initial,legal,apply,outcome,notation,key,inCheck} from './engine.js';
+import {PROFILES,OPENINGS,BRILLIANT_MODES,profileSettings,describeProfile,chooseMove} from './ai.js';
 import AIWorker from './ai.worker.js?worker&inline';
 
-const LEVELS=[
-  {name:'Новичок',depth:1,time:120},
-  {name:'Любитель',depth:2,time:300},
-  {name:'Клубный игрок',depth:4,time:900},
-  {name:'Опытный',depth:6,time:1800},
-  {name:'Гроссмейстер',depth:9,time:3500},
-  {name:'Беспощадный',depth:14,time:6000},
-];
+const PROFILE_ORDER=['legit','semi','blatant'];
 const THEMES=[['wood','Дерево'],['marble','Мрамор'],['neon','Неон'],['minimal','Минимал']];
 const SHAPES=[['square','Квадрат'],['round','Круг'],['hex','Гекс']];
 const VIEWS=[['perspective','Обзор'],['white','Белые'],['black','Чёрные'],['top','Сверху']];
@@ -39,15 +33,22 @@ app.innerHTML=`
     </section>
 
     <section>
-      <h2>ИИ</h2>
+      <h2>Профиль ИИ</h2>
+      <div class="chips" id="profileChips" role="group" aria-label="Профиль ИИ"></div>
+      <p class="hint" id="profileTag"></p>
       <div class="range">
-        <div class="row"><span id="levelName">Клубный игрок</span><span id="levelNum">3 / 6</span></div>
-        <input type="range" id="level" min="1" max="6" step="1" value="3" aria-label="Уровень сложности ИИ">
+        <div class="row"><span>Время на ход</span><span id="timeVal">1,6 с</span></div>
+        <input type="range" id="thinkTime" min="100" max="8000" step="100" value="1600" aria-label="Время на размышление ИИ">
       </div>
       <div class="range">
-        <div class="row"><span>Время на ход</span><span id="timeVal">0,9 с</span></div>
-        <input type="range" id="thinkTime" min="100" max="8000" step="100" value="900" aria-label="Время на размышление ИИ">
+        <div class="row"><span>Разброс времени</span><span id="spreadVal">25%</span></div>
+        <input type="range" id="spread" min="0" max="100" step="5" value="25" aria-label="Разброс времени на ход">
       </div>
+      <h2>Дебют</h2>
+      <div class="chips" id="openingChips" role="group" aria-label="Стиль дебюта"></div>
+      <h2>Бриллиантовый ход</h2>
+      <div class="chips" id="brilliantChips" role="group" aria-label="Бриллиантовые ходы"></div>
+      <h2>Ваша сторона</h2>
       <div class="chips" id="sideChips" role="group" aria-label="Ваша сторона"></div>
     </section>
 
@@ -86,10 +87,16 @@ app.innerHTML=`
 const $=id=>document.getElementById(id);
 const stage=$('stage'),panel=$('panel');
 
-const defaults={mode:'classic',theme:'wood',shape:'square',level:3,time:900,sound:true,human:1,view:'perspective'};
+const defaults={mode:'classic',theme:'wood',shape:'square',profile:'semi',brilliant:'off',sound:true,human:1,view:'perspective',
+  profiles:{
+    legit:{time:900,spread:.55,opening:'random'},
+    semi:{time:1600,spread:.25,opening:'random'},
+    blatant:{time:3000,spread:0,opening:'random'},
+  }};
 let settings={...defaults};
 let state={history:[],moves:[],human:1,view:'perspective'};
 let selected=null,lastMove=null,legalMoves=[],busy=false,over=null,taskId=0,pendingPromotion=null;
+const CHIP_SYNC=[];
 
 restore();
 
@@ -121,7 +128,13 @@ function createWorker(){
 function restore(){
   try{
     const saved=JSON.parse(localStorage.getItem(SAVE)||'null');
-    if(saved&&saved.settings)Object.assign(settings,saved.settings);
+    if(saved&&saved.settings){
+      const {profiles,...flat}=saved.settings;
+      Object.assign(settings,flat);
+      for(const name of PROFILE_ORDER)settings.profiles[name]={...defaults.profiles[name],...(profiles&&profiles[name]||{})};
+      if(!PROFILES[settings.profile])settings.profile='semi';
+      if(!['off','move','series'].includes(settings.brilliant))settings.brilliant='off';
+    }
     if(saved&&Array.isArray(saved.history)&&saved.history.length&&saved.history[0]?.board?.length){
       state={history:saved.history,moves:saved.moves||[],human:saved.human||settings.human,view:saved.view||'perspective'};
       lastMove=state.moves.length?state.moves[state.moves.length-1]:null;
@@ -132,7 +145,7 @@ function restore(){
 
 function current(){return state.history[state.history.length-1]}
 function repetitions(){const k=key(current());return state.history.reduce((n,h)=>n+(key(h)===k?1:0),0)}
-function engineLevel(){return LEVELS[settings.level-1]}
+function profile(){return profileSettings(settings,settings.profile)}
 
 function refresh(){
   const s=current();
@@ -173,6 +186,7 @@ function play(move){
   selected=null;
   scene.update(current(),move);
   const next=current();
+  if(move.brilliant)toast('Бриллиантовый ход');
   if(inCheck(next))sounds.check();
   else if(capture)sounds.capture();
   else sounds.move();
@@ -186,14 +200,22 @@ function aiMove(){
   renderStatus();
   setMeta('расчёт…');
   const id=++taskId;
-  const level=engineLevel();
-  const payload={id,state:current(),options:{time:settings.time,maxDepth:level.depth,history:state.history.slice(-40)}};
+  const current_=current();
+  const payload={id,state:current_,options:{
+    profile:settings.profile,
+    brilliant:settings.brilliant,
+    time:profile().time,
+    spread:profile().spread,
+    opening:profile().opening,
+    maxDepth:profile().depth,
+    history:state.history.slice(-40),
+  }};
   if(worker){
     worker.postMessage(payload);
   }else{
     setTimeout(()=>{
       try{
-        const result=search(payload.state,payload.options);
+        const result=chooseMove(payload.state,payload.options);
         if(id!==taskId)return;
         finishThinking();
         acceptEngineMove({type:'result',...result});
@@ -210,6 +232,7 @@ function acceptEngineMove(data){
   if(!move||over){finishThinking();return;}
   const found=legal(current()).find(m=>m.from===move.from&&m.to===move.to&&(m.promotion||0)===(move.promotion||0));
   if(!found){randomMove('Ход ИИ не найден, взят запасной');return;}
+  found.brilliant=Boolean(data.brilliant);
   busy=false;
   play(found);
 }
@@ -291,14 +314,17 @@ function newGame(){
 }
 
 function bindPanel(){
-  const level=$('level'),time=$('thinkTime');
-  level.value=settings.level;
-  time.value=settings.time;
-  level.addEventListener('input',()=>{settings.level=+level.value;levelLabel();persist()});
-  const timeLabel=()=>$('timeVal').textContent=(settings.time/1000).toFixed(1).replace('.',',')+' с';
-  time.addEventListener('input',()=>{settings.time=+time.value;timeLabel();persist()});
-  levelLabel();
-  timeLabel();
+  const time=$('thinkTime'),spread=$('spread');
+  const timeLabel=()=>$('timeVal').textContent=(profile().time/1000).toFixed(1).replace('.',',')+' с';
+  const spreadLabel=()=>$('spreadVal').textContent=Math.round(profile().spread*100)+'%';
+  const syncInputs=()=>{time.value=profile().time;spread.value=Math.round(profile().spread*100);timeLabel();spreadLabel();$('profileTag').textContent=describeProfile(settings.profile,settings)};
+  time.addEventListener('input',()=>{settings.profiles[settings.profile].time=+time.value;timeLabel();persist()});
+  spread.addEventListener('input',()=>{settings.profiles[settings.profile].spread=+spread.value/100;spreadLabel();persist()});
+  syncInputs();
+
+  chips('profileChips',PROFILE_ORDER.map(name=>[name,PROFILES[name].name]),'profile',()=>{syncInputs();syncAllChips();newGame()});
+  chips('openingChips',OPENINGS,{get:()=>settings.profiles[settings.profile].opening,set:value=>settings.profiles[settings.profile].opening=value},()=>{syncAllChips()});
+  chips('brilliantChips',BRILLIANT_MODES,'brilliant',()=>{});
 
   chips('modeChips',[['classic','8×8 классика'],['strata','Strata 5×5×3']],'mode',()=>newGame());
   chips('sideChips',SIDES,'human',value=>{settings.human=+value;newGame()},String);
@@ -332,29 +358,28 @@ function bindPanel(){
 
 function chips(id,list,settingName,onPick,stringify){
   const box=$(id);
+  const read=()=>typeof settingName==='object'?settingName.get():settings[settingName];
+  const write=value=>{if(typeof settingName==='object')settingName.set(value);else settings[settingName]=value;};
   box.innerHTML=list.map(([value,label])=>`<button class="chip" data-value="${value}" type="button">${label}</button>`).join('');
   const sync=()=>{
     for(const button of box.children){
-      const value=stringify?stringify(settings[settingName]):String(settings[settingName]);
+      const value=stringify?stringify(read()):String(read());
       button.setAttribute('aria-pressed',String(button.dataset.value===value));
     }
   };
   box.addEventListener('click',event=>{
     const button=event.target.closest('.chip');
     if(!button)return;
-    settings[settingName]=stringify?+button.dataset.value:button.dataset.value;
+    write(stringify?+button.dataset.value:button.dataset.value);
     sync();
     onPick(button.dataset.value);
     persist();
   });
+  CHIP_SYNC.push(sync);
   sync();
 }
+function syncAllChips(){for(const sync of CHIP_SYNC)sync()}
 
-function levelLabel(){
-  const level=LEVELS[settings.level-1];
-  $('levelName').textContent=level.name;
-  $('levelNum').textContent=`${settings.level} / 6`;
-}
 
 function renderHistory(){
   const list=$('history');
