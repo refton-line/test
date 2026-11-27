@@ -1,0 +1,3 @@
+# Added by ML AI Code: build output and caches
+node_modules/
+dist/
